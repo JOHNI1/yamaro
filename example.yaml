@@ -1,0 +1,64 @@
+variables:
+  legs_angles: [30, 120, 210, 300]
+  angles: 
+    - 10
+    - 20
+    - 30
+    - 40
+
+functions:
+  convert_to_degrees:
+    input: radians
+    output: output
+    funciton:
+
+
+
+
+model:
+  part:
+    name: base
+    joint:
+      type: fixed
+      parent: root_link
+      xyz:
+      rpy:
+    link:
+      geometry: Box
+      scale: 1 1 1
+      xyz:
+      rpy:
+
+      collision:
+      inertia:
+        mass: 10
+      visual:
+        geometry: Cylinder
+
+
+  for:
+    iterator: i
+    range: 10
+    for:
+      iterator: j
+      range: 5
+      if:
+        condition: ${legs_angles[i]} + ${legs_angles[j]} > 360
+        body:
+          name: leg_${i}_${j}
+          joint:
+  for:
+    iterator: i
+    range: 10
+    for:
+      iterator: j
+      range: 5
+      if:
+        condition: ${legs_angles[i]} + ${legs_angles[j]} > 360
+        body:
+          name: leg_${i}_${j}
+          joint:
+
+
+
+
