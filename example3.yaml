@@ -1,21 +1,16 @@
 variables:
-  A: {scope: global, value: [30, 120, 210, 300]}
-  B/parent: {x: 1, y: 2}
-  C/child: hiii
-  D/local: 
-    - 10
-    - 20
-    - 30
-    - 40
-body:
-  include: 
-    namespace: x
-    path: ~/yamaro/example3.yaml 
-  process: print(f"x.A:{x.A}, x.B:{x.B}, x.C:{x.C}, x.D:{x.D}")
+  A/global: [-1, -2]
+  B/parent: {x: -1, y: -1}
+  C/child: whattt
+  D/local: [1000]
 
 
-  include: ~/yamaro/example2.yaml
-  process: print(f"A:{A}, B:{B}, C:{C}, D:{D}")
+
+
+
+
+
+
 
 
 # variables:

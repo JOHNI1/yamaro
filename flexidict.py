@@ -1,6 +1,27 @@
 import yaml
 
 
+def flexidict_to_dict(flexidict_instance):
+    """
+    Converts a FlexiDict instance into a regular dictionary.
+    In case of duplicate keys, the last occurrence will overwrite the earlier ones.
+    """
+    result_dict = {}
+
+    # Iterate over the key-value pairs in the FlexiDict
+    for key, value in flexidict_instance:
+        if isinstance(value, FlexiDict):
+            # Recursively convert nested FlexiDict to a regular dictionary
+            result_dict[key] = flexidict_to_dict(value)
+        else:
+            # Overwrite any existing value for the same key
+            result_dict[key] = value
+
+    return result_dict
+
+
+
+
 """This class allows keys with the same name!"""
 class FlexiDict:
     def __init__(self):
@@ -77,3 +98,15 @@ FlexiLoader.add_constructor(
 def load_yaml_to_FlexiDict(yaml_file_path):
     with open(yaml_file_path, 'r') as f:
         return yaml.load(f, Loader=FlexiLoader)
+
+
+
+if __name__ == "__main__":
+    t = load_yaml_to_FlexiDict('example.yaml')
+    print(t)
+    print()
+    # print(type(t))
+    # print(type(t['variables'][0]))
+    # print(type(t['variables'][0]["A"]))
+    print(flexidict_to_dict(t))
+
