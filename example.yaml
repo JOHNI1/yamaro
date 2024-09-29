@@ -1,36 +1,40 @@
 variables:
   A/global: [30, 120, 210, 300]
   B/parent: {x: '$(pow(2, 10))', y: '$(A[1]+5)'}
-  C/child: hiii
+  # C/child: $(return_hi())
+  C/child: $(A[0])_$(f'{A[1]}')
   D/local: 
     - 10
     - 20
     - 30
     - 40
-# body:
-#   include: 
-#     namespace: x
-#     path: ~/yamaro/example3.yaml 
-#   process: print(f"x.A:{x.A}, x.B:{x.B}, x.C:{x.C}, x.D:{x.D}")
 
+functions:
+  ConvertToDegrees:
+    input: radians **block
+    content:
+      include:
+        namespace: X
+        path: /var/
 
-#   include: ~/yamaro/example2.yaml
-#   process: print(f"A:{A}, B:{B}, C:{C}, D:{D}")
+        
 
+model:
+  part: 
+    name: base_link
+    joint:
+      _type: fixed
+      _parent: root_link
+      _xyz:
+      _rpy:
+      gazebo:
+      
 
-# variables:
-#   legs_angles/global: [30, 120, 210, 300]
-#   angles: 
-#     - 10
-#     - 20
-#     - 30
-#     - 40
-
-# functions:
-#   convert_to_degrees:
-#     input: radians
-#     output: output
-#     funciton:
+    link:
+      _geometry: Box
+      _scale: 1 1 1
+      _xyz:
+      _rpy:
 
 
 # print() 

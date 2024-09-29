@@ -1,6 +1,9 @@
 import yaml
 
 
+
+
+
 def flexidict_to_dict(flexidict_instance):
     """
     Converts a FlexiDict instance into a regular dictionary.
@@ -31,17 +34,22 @@ class FlexiDict:
         """Add a key-value pair, allowing duplicates."""
         self._items.append([key, value])
 
-    def key_values(self, key):
+    def keys(self):
         """Retrieve all values for a given key."""
-        return [v for k, v in self._items if k == key]
+        return [k for k in self._items[0]]
+    
+    def __len__(self):
+        """Return the number of key-value pairs in the FlexiDict."""
+        return len(self._items)
 
     def __getitem__(self, key):
         """Retrieve all values for a given key using dict-like syntax."""
-        values = self.key_values(key)
+        values = [v for k, v in self._items if k == key]
         if values:
             return values
         else:
             raise KeyError(key)
+        
 
     def __iter__(self):
         """Iterate over the key-value pairs."""
