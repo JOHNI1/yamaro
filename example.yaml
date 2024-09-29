@@ -12,7 +12,7 @@ variables:
 functions:
   ConvertToDegrees:
     input: radians **block
-    content:
+    body:
       include:
         namespace: X
         path: /var/
@@ -20,6 +20,12 @@ functions:
         
 
 model:
+  for:
+    iterator: j
+    range: 3, 1, -1
+    body:
+      print: $(j)
+
   part: 
     name: base_link
     joint:
@@ -28,7 +34,7 @@ model:
       _xyz:
       _rpy:
       gazebo:
-      
+
 
     link:
       _geometry: Box

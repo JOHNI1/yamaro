@@ -520,7 +520,6 @@ def process_value(value, properties, local_key_list) -> str:
 
 
 if __name__ == "__main__":
-    # Example of setting global variables for testing
     current_properties = {
         'default': {
             'variables': {
@@ -535,36 +534,59 @@ if __name__ == "__main__":
     }
     current_local_key_list = []
 
-    # Test value with embedded expressions
-    test_value = "Value of x is $(x) and y is $(namespace1.y)"
+    Q = 'a'
+    print(process(f"$({Q} = 1)"))
+    print(process(f"$({Q})"))
+    print(process(f"$({Q} = 2)"))
+    print(process(f"$({Q})"))
+
+
+
+    # # Example of setting global variables for testing
+    # current_properties = {
+    #     'default': {
+    #         'variables': {
+    #             'x': {'value': 10, 'scope': 'global'}
+    #         }
+    #     },
+    #     'namespace1': {
+    #         'variables': {
+    #             'y': {'value': 20, 'scope': 'local'}
+    #         }
+    #     }
+    # }
+    # current_local_key_list = []
+
+    # # Test value with embedded expressions
+    # test_value = "Value of x is $(x) and y is $(namespace1.y)"
     
-    # Process the value
-    processed_result = process(test_value)
+    # # Process the value
+    # processed_result = process(test_value)
     
-    # Output the result
-    print(f"Processed result: {processed_result}")
+    # # Output the result
+    # print(f"Processed result: {processed_result}")
 
-    print()
-    print()
+    # print()
+    # print()
 
-    print(current_local_key_list)
+    # print(current_local_key_list)
 
-    print()
-    print()
+    # print()
+    # print()
 
-    test2 = process("$(hi = 1)")
+    # test2 = process("$(hi = 1)")
 
-    print(current_local_key_list)
+    # print(current_local_key_list)
 
-    print()
-    print()
+    # print()
+    # print()
 
-    current_local_key_list = []
+    # current_local_key_list = []
 
-    test2 = process("$(x = 1)")
+    # test2 = process("$(x = 1)")
 
-    print(current_local_key_list)
-    print()
-    print()
+    # print(current_local_key_list)
+    # print()
+    # print()
 
-    print(pretty_print_dict(current_properties))
+    # print(pretty_print_dict(current_properties))
