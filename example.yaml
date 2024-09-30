@@ -19,12 +19,12 @@ functions:
         namespace: X
         path: /var/
 
-        
+
 
 model:
   for:
     iterator: a
-    range: 7, 10
+    range: 10
     body:
       print: $(a)
       if:
@@ -32,24 +32,27 @@ model:
         body:
           print: $(a)
           include:
+            namespace: X
             path: example2.yaml
-     
+      
+      transmission: 
+        name: simple_trans
+        body:
 
   part: 
     name: base
     joint:
-      _type: fixed
-      _parent: root_link
-      _xyz:
-      _rpy:
-      gazebo:
+      type: fixed
+      parent: root_link
+      xyz:
+      rpy:
 
 
     link:
-      _geometry: Box
-      _scale: 1 1 1
-      _xyz:
-      _rpy:
+      geometry: Box
+      scale: 1 1 1
+      xyz:
+      rpy:
 
 
 # print() 

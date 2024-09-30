@@ -14,6 +14,12 @@ def split_(s):
     return re.split(r'[,\s]+', s.strip())
 
 
+
+
+def part_process(item):
+    pass
+
+
 def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
     temp = process_value.current_properties
     process_value.current_properties = properties
@@ -35,7 +41,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
     file_data = load_yaml_to_FlexiDict(os.path.expanduser(file_name))
     # print(file_data)
 
-    print('before: ',properties['default']['variables'], '\n')
+    print('before: ',properties, '\n')
 
     # Process variables and functions in the current file
     for key, value in file_data['variables'][-1] if file_data['variables'][-1] is not None else []:
@@ -73,7 +79,9 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
             raise ValueError(f"The function '{name}' must start with a capital letter!")
         properties['default']['functions'][process(name)] = {'value': value, 'scope': scope}
 
-    print('after: ',properties['default']['variables'], '\n')
+
+
+
 
 
 
@@ -86,6 +94,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
         for item in layer:
             if item[0] == 'part':
+                part_process(item)
                 try:
                     name = split_(process(item[1]['name'][-1]))
                     if len(name) == 1:
@@ -93,7 +102,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                         name[0] = f'{name[0]}_joint'
 
                     joint = item[1]['joint'][-1]
-                    joint_type = process(joint['_type'])
+                    # joint_type = process(joint['_type'])
                     link = item[1]['link'][-1]
 
                     
@@ -122,23 +131,26 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                     # properties[namespace] = {**properties[namespace], **process_yaml_to_urdf(a, copy.deepcopy(properties))['default']}
                     #if returned variable is bridge scope 
                     returned_properties = process_yaml_to_urdf(path, copy.deepcopy(properties), (copy.deepcopy(yaml_path_list)).append(path))
+                    if namespace not in properties:
+                        properties[namespace] = dict(variables = dict(), functions = dict())
                     for key in returned_properties['default']['variables'].keys():
-                        if key in properties['default']['variables'].keys():
-                            if properties['default']['variables'][key]['scope'] == 'local':
-                                properties['default']['variables'][key] = returned_properties['default']['variables'][key]
+                        if key in properties[namespace]['variables'].keys():
+                            if properties[namespace]['variables'][key]['scope'] == 'local':
+                                properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
                             else:
-                                properties['default']['variables'][key]['value'] = returned_properties['default']['variables'][key]['value']
+                                properties[namespace]['variables'][key]['value'] = returned_properties['default']['variables'][key]['value']
                         else:
-                            properties['default']['variables'][key] = returned_properties['default']['variables'][key]
+                            properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
 
                     for key in returned_properties['default']['functions'].keys():
-                        if key in properties['default']['functions'].keys():
-                            if properties['default']['functions'][key]['scope'] == 'local':
-                                properties['default']['functions'][key] = returned_properties['default']['functions'][key]
+                        if key in properties[namespace]['functions'].keys():
+                            if properties[namespace]['functions'][key]['scope'] == 'local':
+                                properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
                             else:
-                                properties['default']['functions'][key]['value'] = returned_properties['default']['functions'][key]['value']
+                                properties[namespace]['functions'][key]['value'] = returned_properties['default']['functions'][key]['value']
                         else:
-                            properties['default']['functions'][key] = returned_properties['default']['functions'][key]
+                            properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
+
 
                     process_value.current_properties = properties
 
@@ -201,6 +213,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
 
     process_level(file_data['model'][-1], top_local_key_list)
+    print('after: ',properties, '\n')
 
 
     for key in list(properties['default']['variables'].keys()):
