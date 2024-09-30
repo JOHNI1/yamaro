@@ -36,7 +36,7 @@ class FlexiDict:
 
     def keys(self):
         """Retrieve all values for a given key."""
-        return [k for k in self._items[0]]
+        return [k[0] for k in self._items]
     
     def __len__(self):
         """Return the number of key-value pairs in the FlexiDict."""

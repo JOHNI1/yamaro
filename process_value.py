@@ -398,8 +398,9 @@ from pretty_print_dict import pretty_print_dict
 
 
 '''global variable for yamaro.py'''
-current_properties = None
-current_local_key_list = None
+current_properties = dict(default=dict(functions=dict(), variables=dict()))
+
+current_local_key_list = []
 
 
 

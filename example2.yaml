@@ -1,10 +1,58 @@
 variables:
-  A/global: [10, 20]
-  B/parent: {x: 4, y: 6}
-  C/child: byeeee
+  # A/global: [30, 120, 210, 300]
+  # B/parent: {x: '$(pow(2, 10))', y: '$(A[1]+5)'}
+  # C/child: $(return_hi())
+  B/child: 
+  C/local: $(A[0])_$(f'{A[1]}')
   D/local: 
     - 10
     - 20
+    - 30
+    - 40
+
+functions:
+  # ConvertToDegrees:
+  #   input: radians **block
+  #   body:
+  #     include:
+  #       namespace: X
+  #       path: /var/
+
+        
+
+model:
+  for:
+    iterator: j
+    range: 3, 1, -1
+    body:
+      print: 'internal j: $(j)'
+  #     include:
+  #       path: example.yaml
+
+  # part: 
+  #   name: base_link
+  #   joint:
+  #     _type: fixed
+  #     _parent: root_link
+  #     _xyz:
+  #     _rpy:
+  #     gazebo:
+
+
+  #   link:
+  #     _geometry: Box
+  #     _scale: 1 1 1
+  #     _xyz:
+  #     _rpy:
+
+
+# variables:
+#   A/global: [10, 20]
+#   B/parent: {x: 4, y: 6}
+#   C/child: byeeee
+#   D/local: 
+#     - 10
+#     - 20
 
 
 

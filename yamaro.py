@@ -5,13 +5,16 @@ from process_value import process
 import process_value
 from pretty_print_dict import pretty_print_dict
 import copy
+import re
 
-urdf_output = ''
+urdf_output = '<?xml version="1.0" ?>\n'
+
+def split_(s):
+    # Split on any number of commas and spaces
+    return re.split(r'[,\s]+', s.strip())
 
 
-
-
-def process_yaml_to_urdf(file_name, properties) -> dict:
+def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
     temp = process_value.current_properties
     process_value.current_properties = properties
 
@@ -32,26 +35,37 @@ def process_yaml_to_urdf(file_name, properties) -> dict:
     file_data = load_yaml_to_FlexiDict(os.path.expanduser(file_name))
     # print(file_data)
 
+    print('before: ',properties['default']['variables'], '\n')
+
     # Process variables and functions in the current file
-    for key, value in file_data['variables'][-1]:
+    for key, value in file_data['variables'][-1] if file_data['variables'][-1] is not None else []:
         tag = key.split('/')
-        name = tag[0]
-        scope = tag[1] if len(tag) == 2 else 'local'
+        name = process(tag[0])
+        scope = process(tag[1] if len(tag) == 2 else 'local')
         if scope not in 'local parent child global'.split():
             raise ValueError(f"The scope of variable '{name}' is wrong! 'local parent child global' are allowed")
-        if name in properties['default']['variables'].keys() or (temp['default']['variables'][process(name)]['scope'] in 'child' and scope == 'parent') if temp is not None else False:
+        if name in properties['default']['variables'].keys():
+            if properties['default']['variables'][name]['scope'] != 'arg':
+                raise ValueError(f"The variable '{name}' is already defined!")
+        if (temp['default']['variables'][name]['scope'] in 'child parent' and scope in 'parent global') if name in temp['default']['variables'].keys() else False:
             raise ValueError(f"The variable '{name}' is already defined!")
         if '.' in key:
             raise ValueError(f"The variable '{name}' cannot contain dots.")
-        properties['default']['variables'][process(name)] = {'value': process(value), 'scope': scope}
+        if name in properties['default']['variables'].keys():
+            if properties['default']['variables'][name]['scope'] != 'arg':
+                properties['default']['variables'][name] = {'value': process(value), 'scope': scope}
+        else:
+            properties['default']['variables'][name] = {'value': process(value), 'scope': scope}
 
-    for key, value in file_data['functions'][-1]:
+    for key, value in file_data['functions'][-1] if file_data['functions'][-1] is not None else []:
         tag = key.split('/')
-        name = tag[0]
-        scope = tag[1] if len(tag) == 2 else 'local'
+        name = process(tag[0])
+        scope = process(tag[1] if len(tag) == 2 else 'local')
         if scope not in 'local parent child global'.split():
             raise ValueError(f"The scope of function '{name}' is wrong! 'local parent child global' are allowed")
-        if name in properties['default']['functions'].keys() or (temp['default']['functions'][process(name)]['scope'] in 'child' and scope == 'parent') if temp is not None else False:
+        if name in properties['default']['functions'].keys():
+            raise ValueError(f"The function '{name}' is already defined!")
+        if (temp['default']['functions'][name]['scope'] in 'child parent' and scope in 'parent global') if name in temp['default']['functions'].keys() else False:
             raise ValueError(f"The function '{name}' is already defined!")
         if '.' in key:
             raise ValueError(f"The function '{name}' cannot contain dots.")
@@ -59,9 +73,10 @@ def process_yaml_to_urdf(file_name, properties) -> dict:
             raise ValueError(f"The function '{name}' must start with a capital letter!")
         properties['default']['functions'][process(name)] = {'value': value, 'scope': scope}
 
+    print('after: ',properties['default']['variables'], '\n')
 
 
-    print(properties)
+
 
 
     def process_level(layer: list, previous_level_local_key_list: list):
@@ -72,7 +87,15 @@ def process_yaml_to_urdf(file_name, properties) -> dict:
         for item in layer:
             if item[0] == 'part':
                 try:
-                    name = process(item[1]['name'][-1])
+                    name = split_(process(item[1]['name'][-1]))
+                    if len(name) == 1:
+                        name.append(f'{name[0]}_link')
+                        name[0] = f'{name[0]}_joint'
+
+                    joint = item[1]['joint'][-1]
+                    joint_type = process(joint['_type'])
+                    link = item[1]['link'][-1]
+
                     
 
                 except Exception as e:
@@ -81,19 +104,24 @@ def process_yaml_to_urdf(file_name, properties) -> dict:
             elif item[0] == 'process':
                 pass
             elif item[0] == 'print':
-                print(process(item[1]))
+                # ANSI escape codes for colors
+                GREEN = "\033[32m"
+                RESET = "\033[0m"  # Reset color to default
+                print(f'{GREEN}user_print:{RESET} {process(item[1])}')
             elif item[0] == 'include':
                 
                 try:
-                    namespace = process(item[1]['namespace'] if 'namespace' in item[1].keys() else 'default')
+                    namespace = process(item[1]['namespace'][-1] if 'namespace' in item[1].keys() else 'default')
                     if not namespace[0].isupper() and namespace != 'default':
                         raise ValueError(f"The function '{item[1]['path']}' must start with a capital letter!")
-                    a = process(item[1]['path'])
+                    path = process(item[1]['path'][-1])
+                    if path in yaml_path_list:
+                        raise Exception("path included is already used and it will cuase infinite recursion!")
                     #the line beneath won't work when namespace is not default and not yet defined because **properties[namespace] is simply non existent and reading it will fail
                     #here I need to implement the logic of only merging values that are global, parent, bridge. ONLY THE VALUES, NOT THE SCOPE!
                     # properties[namespace] = {**properties[namespace], **process_yaml_to_urdf(a, copy.deepcopy(properties))['default']}
                     #if returned variable is bridge scope 
-                    returned_properties = process_yaml_to_urdf(a, copy.deepcopy(properties))
+                    returned_properties = process_yaml_to_urdf(path, copy.deepcopy(properties), (copy.deepcopy(yaml_path_list)).append(path))
                     for key in returned_properties['default']['variables'].keys():
                         if key in properties['default']['variables'].keys():
                             if properties['default']['variables'][key]['scope'] == 'local':
@@ -121,7 +149,7 @@ def process_yaml_to_urdf(file_name, properties) -> dict:
             elif item[0] == 'for':
                 try:
                     iterator = process(item[1]['iterator'][0])
-                    range_ = process(str(item[1]['range'][0]).split(','))
+                    range_ = split_(process(str(item[1]['range'][0])))
 
                     process(f'$({iterator} = 0)')
 
@@ -196,65 +224,44 @@ def process_yaml_to_urdf(file_name, properties) -> dict:
 
 
 
-    # print()
-    # print()
-    # print(file_data['model'])
-    # print(file_data['model'][-1])
+# ANSI escape codes for colors
+RED = "\033[31m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+BLUE = "\033[34m"
+RESET = "\033[0m"  # Reset color to default
 
-    # process_level(file_data['model'][-1])
-
-    # # Process body if exists
-    # body=None
-    # try:
-    #     body = file_data['body'][0]
-    # except:
-    #     pass
-    
-    # for component in body:
-    #     if 'include' == component[0]:
-    #         print(component)
-    #         child_store = VariableStore()
-    #         process_yaml_to_urdf(component[1]['path'][0], child_store, var_store, namespace=(component[1]['namespace'][0] if 'namespace' in component[1] else None))
-
-
-    #     if 'process' in body:
-    #         # Evaluate the process field using the variables
-    #         local_vars = {**var_store.global_, **var_store.local}
-    #         if parent_store:
-    #             local_vars.update(parent_store.parent)
-    #         local_vars.update(var_store.child)
-    #         local_vars.update(var_store.parent)
-
-    #         # Include all namespaces into the local vars for process execution
-    #         local_vars.update(var_store.namespaces)
-            
-    #         eval(body['process'], {}, local_vars)
-
-    # # After recursion, propagate variables back to the parent if needed
-    # if parent_store:
-    #     for var, value in var_store.parent.items():
-    #         parent_store.set_variable(var, value, 'parent')
-    #     for var, value in var_store.global_.items():
-    #         parent_store.set_variable(var, value, 'global')
-
-    # print(f"file_name: {file_name}, local, {get_variable}")
-
-
-
+# # Example of printing in different colors
+# print(f"{RED}This is red text{RESET}")
+# print(f"{GREEN}This is green text{RESET}")
+# print(f"{YELLOW}This is yellow text{RESET}")
+# print(f"{BLUE}This is blue text{RESET}")
 
 
 # Start with the first YAML file and a global variable store
 properties = dict(default=dict(functions=dict(), variables=dict()))
-print(properties)
-print()
-print()
-print()
-print()
+
+for idx, arg in enumerate(sys.argv):
+    print(f"Argument {idx}: {arg}")
+    if idx > 1:
+        name, value = arg.split(':=')
+        process(f'$({name} = {value})')
+        properties['default']['variables'][name] = {'value': eval(value), 'scope': 'arg'}
 
 
 
+if 'robot' in load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1])).keys():
+    urdf_output += f'<robot name="{process(load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1]))['robot'][0])}">\n'
+else:
+    urdf_output += f'<robot name="default">\n'
+
+
+
+process_value.current_properties = properties
+print(f'\n{BLUE}starting processing yaml to urdf!{RESET}\n')
 # process input arg so it allows passing variables! for now I will pass barebone properties
+process_yaml_to_urdf(sys.argv[1], properties, [sys.argv[1]])
 
-process_yaml_to_urdf(sys.argv[1], properties)
+urdf_output+='</robot>'
 
-print(urdf_output)
+print(f'\n\n{BLUE}output urdf:{RESET}\n{urdf_output}')

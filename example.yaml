@@ -1,8 +1,10 @@
+robot: drone_$(A)
+
 variables:
   A/global: [30, 120, 210, 300]
   B/parent: {x: '$(pow(2, 10))', y: '$(A[1]+5)'}
-  # C/child: $(return_hi())
-  C/child: $(A[0])_$(f'{A[1]}')
+  # C/child: $(10)
+  # C/child: $(A[0])_$(f'{A[1]}')
   D/local: 
     - 10
     - 20
@@ -10,7 +12,7 @@ variables:
     - 40
 
 functions:
-  ConvertToDegrees:
+  ConvertToDegrees/global:
     input: radians **block
     body:
       include:
@@ -25,9 +27,11 @@ model:
     range: 3, 1, -1
     body:
       print: $(j)
+      include:
+        path: example2.yaml
 
   part: 
-    name: base_link
+    name: base
     joint:
       _type: fixed
       _parent: root_link
