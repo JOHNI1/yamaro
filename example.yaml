@@ -23,12 +23,17 @@ functions:
 
 model:
   for:
-    iterator: j
-    range: 3, 1, -1
+    iterator: a
+    range: 7, 10
     body:
-      print: $(j)
-      include:
-        path: example2.yaml
+      print: $(a)
+      if:
+        condition: $(a) % 2 == 0
+        body:
+          print: $(a)
+          include:
+            path: example2.yaml
+     
 
   part: 
     name: base

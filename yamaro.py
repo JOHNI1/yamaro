@@ -157,9 +157,8 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                         range_.append(range_[0])
                         range_[0] = 0
                         range_.append(1)
-                    else:
-                        range_[2] = range_[2] if len(range_) == 3 else 1
-
+                    elif len(range_) == 2:
+                        range_.append(1)
 
                     for t in range(int(range_[0]), int(range_[1]), int(range_[2])):
                         process(f'$({iterator} = {t})')
@@ -169,8 +168,12 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                     raise Exception(f"Error processing for loop. {e}")
 
             elif item[0] == 'if':
-                pass
-
+                try:
+                    condition = process(item[1]['condition'][0])
+                    if (eval(condition)):
+                        process_level(item[1]['body'][-1] if item[1]['body'][-1] is not None else [], local_key_list)########################## watch out! none type is not iterable error fix!
+                except Exception as e:
+                    raise Exception(f"Error processing for loop. {e}")
             elif item[0][0].isupper():  #function
                 tag = item[0].split('.')
                 if len(tag) == 2 and tag[0] in properties.keys():
