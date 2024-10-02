@@ -44,19 +44,7 @@ def xml(element, attributes={}, body=[], *args, **kwargs):
         add_line_to_urdf(f'<{element}{argument}/>')
         
 
-def part_process(item, previous_level_local_key_list, process_level, *args, **kwargs):
-    # def get_value(item_, key, default) -> any:
-    #     if key in item_.keys() :
-    #         k = process(key)
-    #         if item_[k][-1] is not None:
-    #             del item_[k]
-    #             return process(item_[key][-1])
-    #         del item_[k]
-    #     return default
-    def get_value(item_, default) -> any:
-        if item_[1] is None:
-            return default
-        return process(item_[1])
+def part_process(item, previous_level_local_key_list, process_level):
     
     try:
         if process(item[0][0]) == 'name':
@@ -79,7 +67,8 @@ def part_process(item, previous_level_local_key_list, process_level, *args, **kw
         for item_ in joint:
             key = process(item_[0])
             if key in vars.keys():
-                vars[key] = process(item_[1])
+                value = process(item_[1])
+                vars[key] = value if value is not None else vars[key]
             else:
                 key = key.split('/')
                 attributes = key[1].split(',')
@@ -99,16 +88,16 @@ def part_process(item, previous_level_local_key_list, process_level, *args, **kw
             lambda: xml('parent', parent),
         ]
 
-        for i in default_joint_setup:
-            j.insert(default_joint_setup[i], i)
+        for i in range(len(default_joint_setup)):
+            j.insert(i, default_joint_setup[i])
 
-        xml('joint', {'name': name[0], 'type': type}, j)
-
-
+        xml('joint', {'name': name[0], 'type': vars['type']}, j)
 
 
 
-        if not process(item[2][0]) == 'link':
+
+
+        if process(item[2][0]) == 'link':
             link = item[2][1]
         else:
             raise ValueError(f'In part first define name, then joint and then link!')
@@ -120,24 +109,21 @@ def part_process(item, previous_level_local_key_list, process_level, *args, **kw
         for item_ in link:
             key = process(item_[0])
             if key in vars.keys():
-                vars[key] = process(item_[1])
+                value = process(item_[1])
+                vars[key] = value if value is not None else vars[key]
             elif key in 'visual inertial collision'.split():
                 sub_vars = copy.deepcopy(vars)
                 l_comp = []
-                if sub_key == 'inertial':
-                    for sub_item in item_[1]:
+                if key == 'inertial':
+                    for sub_item in item_[1] if item_[1] is not None else [['']]:
                         sub_key = process(sub_item[0])
-                        if sub_key in 'xyz rpy'.split():
+                        if sub_key in 'xyz rpy'.split() and not sub_key == '':
                             sub_vars[sub_key] = ''.join(str(float(split_(sub_vars[sub_key])[i]) + float(split_(process(sub_item[1]))[i])) for i in range(3))         
-                        elif sub_key in 'inertia geometry'.split():
-                            sub_vars[sub_key] = process(sub_item[1])
-
-                            l_comp.append(lambda: xml(key, {}))
-                        elif sub_key in 'mass'.split():
-                            sub_vars[sub_key] = process(sub_item[1])
-                        else:
-                            l_comp.append(lambda: xml(key, {}))
-
+                        elif sub_key in 'geometry scale inertia mass'.split() and not sub_key == '':
+                            sub_value = process(sub_item[1])
+                            sub_vars[sub_key] = sub_value if sub_value is not None else vars[key]
+                        elif  not sub_key == '':
+                            l_comp.append(lambda: xml(sub_key, {}))
 
 
                     if 'inertia' not in sub_vars.keys():
@@ -149,59 +135,49 @@ def part_process(item, previous_level_local_key_list, process_level, *args, **kw
                             sub_vars['inertia'] = f'{float(sub_vars['mass']) * (3*(pow(float(split_(sub_vars['scale'])[0]),2) + pow(float(split_(sub_vars['scale'])[1]),2)) + pow(float(split_(sub_vars['scale'])[2]),2)) / 12} 0 0 {float(sub_vars['mass']) * (3*(pow(float(split_(sub_vars['scale'])[0]),2) + pow(float(split_(sub_vars['scale'])[1]),2)) + pow(float(split_(sub_vars['scale'])[2]),2)) / 12} 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]),2) + pow(float(split_(sub_vars['scale'])[1]),2)) / 2}'
                         elif sub_vars['geometry'].lower() == 'sphere':
                             sub_vars['inertia'] = f'{float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]),2) * (2/5)} 0 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]),2) * (2/5)} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]),2) * (2/5)}'
-
-                            
-                        
                     
                     l_comp.append(lambda: xml('mass', attributes=dict(value=sub_vars['mass'])))
-                    l_comp.append(lambda: xml('inertia', attributes=dict(xyz=(sub_vars['xyz']), rpy=(sub_vars['inertia']))))
-                    l_comp.append(lambda: xml('origin', attributes=dict(ixx=(split_(sub_vars['inertia']))[0], ixy=(split_(sub_vars['inertia']))[1], ixz=(split_(sub_vars['inertia']))[2], iyy=(split_(sub_vars['inertia']))[3], iyz=(split_(sub_vars['inertia']))[4], izz=(split_(sub_vars['inertia']))[5])))
-
-                        
+                    l_comp.append(lambda: xml('origin', attributes=dict(xyz=(sub_vars['xyz']), rpy=(sub_vars['rpy']))))
+                    l_comp.append(lambda: xml('inertia', attributes=dict(ixx=(split_(sub_vars['inertia']))[0], ixy=(split_(sub_vars['inertia']))[1], ixz=(split_(sub_vars['inertia']))[2], iyy=(split_(sub_vars['inertia']))[3], iyz=(split_(sub_vars['inertia']))[4], izz=(split_(sub_vars['inertia']))[5])))
 
 
-                if sub_key in 'collision visual'.split():
+                elif key in 'collision visual'.split():
+
                 #     for sub_item in item_[1]:
                 #         sub_key = process(sub_item[0])
 
 
                 # l.append(lambda: xml(key, body=l_comp))
-                    for sub_item in item_[1]:
+                    for sub_item in item_[1] if item_[1] is not None else [['']]:
                         sub_key = process(sub_item[0])
-                        if sub_key in 'xyz rpy'.split():
+                        if sub_key in 'xyz rpy'.split() and not sub_key == '':
                             sub_vars[sub_key] = ''.join(str(float(split_(sub_vars[sub_key])[i]) + float(split_(process(sub_item[1]))[i])) for i in range(3))         
-                        elif sub_key in 'inertia geometry'.split():
-                            sub_vars[sub_key] = process(sub_item[1])
-
-                            l_comp.append(lambda: xml(key, {}))
-                        elif sub_key in 'mass'.split():
-                            sub_vars[sub_key] = process(sub_item[1])
-
-
-
-                    if 'inertia' not in sub_vars.keys():
-                        if sub_vars['geometry'].lower() == 'box':
-                            sub_vars['inertia'] = f'{float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[1]),2) + pow(float(split_(sub_vars['scale'])[2]),2)) / 12} 0 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]),2) + pow(float(split_(sub_vars['scale'])[2]),2)) / 12} 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]),2)+ pow(float(split_(sub_vars['scale'])[1]),2)) / 12}'
-                        elif sub_vars['geometry'].lower() == 'cylinder':
-                            sub_vars['inertia'] = f'{float(sub_vars['mass']) * (3*pow(float(split_(sub_vars['scale'])[0]),2) + pow(float(split_(sub_vars['scale'])[1]),2)) / 12} 0 0 {float(sub_vars['mass']) * (3*pow(float(split_(sub_vars['scale'])[0]),2) + pow(float(split_(sub_vars['scale'])[1]),2)) / 12} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]),2) / 2}'
-                        elif sub_vars['geometry'].lower() == 'tube': # first two is inner or outer diameter and last is length... inner and outer dimater order dooes not matter...
-                            sub_vars['inertia'] = f'{float(sub_vars['mass']) * (3*(pow(float(split_(sub_vars['scale'])[0]),2) + pow(float(split_(sub_vars['scale'])[1]),2)) + pow(float(split_(sub_vars['scale'])[2]),2)) / 12} 0 0 {float(sub_vars['mass']) * (3*(pow(float(split_(sub_vars['scale'])[0]),2) + pow(float(split_(sub_vars['scale'])[1]),2)) + pow(float(split_(sub_vars['scale'])[2]),2)) / 12} 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]),2) + pow(float(split_(sub_vars['scale'])[1]),2)) / 2}'
-                        elif sub_vars['geometry'].lower() == 'sphere':
-                            sub_vars['inertia'] = f'{float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]),2) * (2/5)} 0 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]),2) * (2/5)} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]),2) * (2/5)}'
-
-                            
-                        
+                        elif sub_key in 'geometry scale'.split() and not sub_key == '':
+                            sub_value = process(sub_item[1])
+                            sub_vars[sub_key] = sub_value if sub_value is not None else vars[key]
+                        elif  not sub_key == '':
+                            l_comp.append(lambda: xml(sub_key, {}))
                     
-                    l_comp.append(lambda: xml('mass', attributes=dict(value=sub_vars['mass'])))
-                    l_comp.append(lambda: xml('inertia', attributes=dict(xyz=(sub_vars['xyz']), rpy=(sub_vars['inertia']))))
-                    l_comp.append(lambda: xml('origin', attributes=dict(ixx=(split_(sub_vars['inertia']))[0], ixy=(split_(sub_vars['inertia']))[1], ixz=(split_(sub_vars['inertia']))[2], iyy=(split_(sub_vars['inertia']))[3], iyz=(split_(sub_vars['inertia']))[4], izz=(split_(sub_vars['inertia']))[5])))
 
-                        
+                    if sub_vars['geometry'].lower() == 'box':
+                        l_comp.append(lambda: xml('geometry', body=[lambda: xml('box', attributes=dict(size=(sub_vars['scale'])))]))
+                    elif sub_vars['geometry'].lower() == 'cylinder':
+                        l_comp.append(lambda: xml('geometry', body=[lambda: xml('cylinder', attributes=dict(radius=float(split_(sub_vars['scale'])[0]), length=float(split_(sub_vars['scale'])[1])))]))
+                    elif sub_vars['geometry'].lower() == 'sphere':
+                        l_comp.append(lambda: xml('geometry', body=[lambda: xml('sphere', attributes=dict(radius=float(split_(sub_vars['scale'])[0])))]))
+                    l_comp.append(lambda: xml('origin', attributes=dict(xyz=(sub_vars['xyz']), rpy=(sub_vars['rpy']))))
 
-
+                l.append(lambda: xml(key, body=l_comp))
             else:
+                key = key.split('/')
+                attributes = key[1].split(',')
+                att = {}
+                for attribute in attributes:
+                    att[attribute.split(':=')[0]] = attribute.split('=')[1]
                 l.append(lambda: xml(key[0], att, process_level(item_[1], previous_level_local_key_list))) #no processing here!
 
+
+        xml('link', {'name': name[1]}, l)
 
 
         # for item_ in link:
@@ -321,7 +297,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
             # print(file_data)
 
             if item[0] == 'part':
-                part_process(copy.deepcopy(item[1]))
+                part_process(copy.deepcopy(item[1]), local_key_list, process_level)
 
             elif item[0] == 'process':
                 pass
@@ -388,7 +364,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                     for t in range(int(range_[0]), int(range_[1]), int(range_[2])):
                         process(f'$({iterator} = {t})')
                         
-                        process_level(item[1]['body'][-1], local_key_list)########################## watch out! none type is not iterable error fix!
+                        process_level(item[1]['body'][-1], local_key_list)
                 except Exception as e:
                     raise Exception(f"Error processing for loop. {e}")
 
@@ -396,26 +372,61 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                 try:
                     condition = process(item[1]['condition'][0])
                     if (eval(condition)):
-                        process_level(item[1]['body'][-1], local_key_list)########################## watch out! none type is not iterable error fix!
+                        process_level(item[1]['body'][-1], local_key_list)
                 except Exception as e:
                     raise Exception(f"Error processing for loop. {e}")
             elif item[0][0].isupper():  #function
-                tag = item[0].split('.')
-                if len(tag) == 2 and tag[0] in properties.keys():
-                    if tag[1] in properties[tag[0]]['functions'].keys():
-                        pass
+                def CallFunction(ns, function_name):
+                    input = process((properties[ns]['functions'][function_name])['input'][-1])
+                    for i in range(len(input)):
+                        if ':=' in input[i]:
+                            input[i] = input[i].replace(':=', '=')
+                            process(f'$({input[i]})')
+                        elif '=' in input[i]:
+                            process(f'$({input[i]})')
+                        else:
+                            input[i] = f'{input[i]}=None'
+                            process(f'$({input[i]})')
+                        input[i] = input[i].split('=')[0].replace(' ', '')
 
+                    passed_input = (process(item[1])).split(',')
+                    for i in range(len(passed_input)):
+                        if ':=' in passed_input[i]:
+                            passed_input[i] = passed_input[i].replace(':=', '=')
+                            process(f'$({passed_input[i]})')
+                        elif '=' in passed_input[i]:
+                            process(f'$({passed_input[i]})')
+                        else:
+                            passed_input[i] = f'{input[i]}={passed_input[i]}'
+                            process(f'$({passed_input[i]})')
+                    process_level((properties[ns]['functions'][function_name])['body'][-1], local_key_list)
+                
+                    
+
+                tag = item[0].split('.')
+                if len(tag) == 2 and tag[0] in properties.keys(): #if namespace is defined
+                    if tag[1] in properties[tag[0]]['functions'].keys():
+                        CallFunction(tag[0], tag[1])
                     else:
                         raise KeyError(f"The function '{tag[1]}' is not defined in namespace '{tag[0]}'. Ensure that the function is defined in the same namespace or use default namespace.")
 
                 elif len(tag) == 1 and tag in properties['default']['functions'].keys():
-                    pass
-
+                    CallFunction('default', tag[0])
                 else:
                     raise ValueError(f"The '{tag}' is causing syntax error. For calling function, ensure that it is defined. If you specified namespace, use namespace.my_function to resolve it. Namespaces cannot be nested!")
             else:
-                '''building of custom element and argument for super flexible xml tag creation!'''
-                
+                ele_att = item[0].split('/')
+                attributes = ele_att[1].split(',')
+                att = {}
+                for attribute in attributes:
+                    if ':' in attribute:
+                        att[attribute.split(':')[0]] = attribute.split(':')[1]
+                    elif ':=' in attribute:
+                        att[attribute.split(':=')[0]] = attribute.split(':=')[1]
+                    else:
+                        att[attribute.split('=')[0]] = attribute.split('=')[1]
+                xml(ele_att[0], att, process_level(item[1], previous_level_local_key_list)) #no processing here!
+
 
         for key in local_key_list:
             if key in properties['default']['variables'].keys() and properties['default']['variables'][key]['scope'] == 'local':
@@ -484,9 +495,7 @@ if 'robot' in load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1])).keys():
 else:
     add_line_to_urdf(f'<robot name="default">')
 tab_()
-add_line_to_urdf('')
-add_line_to_urdf(f'<link name="root_link">')
-add_line_to_urdf(f'</link>\n')
+xml('link', {'name': 'root_link'})
 
 
 # print(load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1])))

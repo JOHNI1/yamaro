@@ -4,12 +4,23 @@ variables:
   for/global: for
 
 functions:
-  # ConvertToDegrees/global:
-  #   input: radians **block
+  # MakePart:
+  #   input: x, y, z=0
   #   body:
-  #     include:
-  #       namespace: X
-  #       path: /var/
+  #     part: 
+  #     name: base
+  #     joint:
+  #       type: fixed
+  #       parent: root_link
+  #       xyz:
+  #       rpy:
+
+
+  #     link:
+  #       geometry: Box
+  #       scale: 1 1 1
+  #       xyz: 0 0 0
+  #       rpy: 0 0 0
 
 
 
@@ -20,19 +31,17 @@ model:
     body:
       print: $(a)
   part: 
-      name: base
-      joint:
-        type: fixed
-        parent: root_link
-        xyz:
-        rpy:
-
-
-      link:
-        geometry: Box
-        scale: 1 1 1
-        xyz:
-        rpy:
-        collision
+    name: base
+    joint:
+      type: fixed
+      parent: root_link
+      xyz:
+      rpy:
+    link:
+      geometry: Box
+      scale: 1 1 1
+      xyz: 0 0 0
+      rpy: 0 0 0
+      collision:
 
 
