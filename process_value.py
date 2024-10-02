@@ -398,7 +398,7 @@ from pretty_print_dict import pretty_print_dict
 
 
 '''global variable for yamaro.py'''
-current_properties = dict(default=dict(functions=dict(), variables=dict()))
+current_properties = dict(default=dict(variables=dict(), functions=dict()))
 
 current_local_key_list = []
 
@@ -541,6 +541,7 @@ if __name__ == "__main__":
     print(process(f"$({Q} = 2)"))
     print(process(f"$({Q})"))
 
+    print(process(f"$((1, 1)[1])"))
 
 
     # # Example of setting global variables for testing

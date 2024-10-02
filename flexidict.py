@@ -43,6 +43,8 @@ class FlexiDict:
         return len(self._items)
 
     def __getitem__(self, key):
+        if not isinstance(key, str):
+            return self._items[key]
         """Retrieve all values for a given key using dict-like syntax."""
         values = [v for k, v in self._items if k == key]
         if values:

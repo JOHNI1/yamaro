@@ -12,21 +12,20 @@ variables:
     - 40
 
 functions:
-  ConvertToDegrees/global:
-    input: radians **block
-    body:
-      include:
-        namespace: X
-        path: /var/
+  # ConvertToDegrees/global:
+  #   input: radians **block
+  #   body:
+  #     include:
+  #       namespace: X
+  #       path: /var/
 
 
 
 model:
   for:
     iterator: a
-    range: 10
+    range: 3
     body:
-      print: $(a)
       if:
         condition: $(a) % 2 == 0
         body:
