@@ -331,10 +331,10 @@ def part_process(item, previous_level_local_key_list, process_level):
                             sub_value = process(sub_item[1])
                             sub_vars[sub_key] = sub_value if sub_value is not None else vars[key]
                         elif not sub_key == '':
-                            ele = sub_key.split('/')
+                            ele_att = sub_key.split('/')
                             att = {}
                             if len(ele_att) > 1:
-                                attributes = ele[1].split(',')
+                                attributes = ele_att[1].split(',')
                                 for attribute in attributes:
                                     if ':' in attribute:
                                         att[attribute.split(':')[0]] = attribute.split(':')[1]
@@ -344,8 +344,8 @@ def part_process(item, previous_level_local_key_list, process_level):
                                         att[attribute.split('=')[0]] = attribute.split('=')[1]
                             # Capture variables by value
                             l_comp_list[index].append(
-                                lambda ele_att=ele[0], att=att, sub_item=sub_item: xml(
-                                    ele_att, att, process_level(sub_item[1], previous_level_local_key_list)
+                                lambda ele_att=ele_att[0], att=att, sub_item=sub_item: xml(
+                                    ele_att, att, [lambda: process_level(sub_item[1], previous_level_local_key_list)]
                                 )
                             )
 
@@ -403,7 +403,7 @@ def part_process(item, previous_level_local_key_list, process_level):
                             # Capture variables by value
                             l_comp_list[index].append(
                                 lambda ele_att=ele_att[0], att=att, sub_item=sub_item: xml(
-                                    ele_att, att, process_level(sub_item[1], previous_level_local_key_list)
+                                    ele_att, att, [lambda: process_level(sub_item[1], previous_level_local_key_list)]
                                 )
                             )
 
@@ -429,11 +429,10 @@ def part_process(item, previous_level_local_key_list, process_level):
 
                     l.append(lambda key=key, body=l_comp_list[index]: xml(key, body=body))
             else:
-                key_parts = key.split('/')
-                ele = key_parts[0]
+                ele_att = key.split('/')
                 att = {}
-                if len(key_parts) > 1:
-                    attributes = key_parts[1].split(',')
+                if len(ele_att) > 1:
+                    attributes = ele_att[1].split(',')
                     for attribute in attributes:
                         if ':' in attribute:
                             att[attribute.split(':')[0]] = attribute.split(':')[1]
@@ -442,7 +441,7 @@ def part_process(item, previous_level_local_key_list, process_level):
                         else:
                             att[attribute.split('=')[0]] = attribute.split('=')[1]
                 l.append(
-                    lambda ele_att=ele, att=att, item_=item_: xml(
+                    lambda ele_att=ele_att[0], att=att, item_=item_: xml(
                         ele_att, att, process_level(item_[1], previous_level_local_key_list)
                     )
                 )

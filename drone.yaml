@@ -23,13 +23,14 @@ functions:
           visual:
           inertial:
             mass: 1
+               
 
 
 
 model:
   $('for'):
     iterator: i
-    range: 2
+    range: 1
     body:
       MakePart: part$(i), fixed, parent='root_link', '$(i) $(i) $(i)', rpy='$(i) $(i) $(i)', geometry='box', scale='1 1 1'  # part: 
   #   name: base
