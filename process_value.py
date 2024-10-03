@@ -498,15 +498,29 @@ def process_value(value, properties, local_key_list) -> str:
         try:
             if is_assignment:
                 exec(expr_with_vars, {}, local_vars)
+                # for var_name in local_vars:
+                #     # Track new local variables
+                #     if var_name not in properties['default']['variables']:
+                #         local_key_list.append(var_name)
+                #         properties['default']['variables'][var_name] = {'value': local_vars[var_name], 'scope': 'local'}
+                #     else:
+                #         # Keep the existing scope of the variable
+                #         current_scope = properties['default']['variables'][var_name]['scope']
+                #         properties['default']['variables'][var_name] = {'value': local_vars[var_name], 'scope': current_scope}
                 for var_name in local_vars:
+                    # Strip extra quotes from the variable value
+                    var_value = local_vars[var_name]
+                    if isinstance(var_value, str):
+                        var_value = var_value.strip('\'"')
                     # Track new local variables
                     if var_name not in properties['default']['variables']:
                         local_key_list.append(var_name)
-                        properties['default']['variables'][var_name] = {'value': local_vars[var_name], 'scope': 'local'}
+                        properties['default']['variables'][var_name] = {'value': var_value, 'scope': 'local'}
                     else:
                         # Keep the existing scope of the variable
                         current_scope = properties['default']['variables'][var_name]['scope']
-                        properties['default']['variables'][var_name] = {'value': local_vars[var_name], 'scope': current_scope}
+                        properties['default']['variables'][var_name] = {'value': var_value, 'scope': current_scope}
+
                 evaluated = ''
             else:
                 evaluated = str(eval(expr_with_vars, {}, local_vars))
@@ -535,13 +549,34 @@ if __name__ == "__main__":
     }
     current_local_key_list = []
 
+    strin = 'root_link'
+    processing_string = f'parent="{strin}"'
+    print(process(f'$({processing_string})'))
+    vari = 'parent'
+    print(process(f'parent: $({vari})'))
+
+    strin = 'root_link'
+    processing_string = f' parent="{strin}"'
+    print(process(f'$({processing_string})'))
+    vari = 'parent'
+    print(process(f'parent: $({vari})'))
+
+
+
     Q = 'a'
-    print(process(f"$({Q} = 1)"))
+    print(process(f'$({vari})'))
+    print(process(f"$({Q} = '1')"))
     print(process(f"$({Q})"))
     print(process(f"$({Q} = 2)"))
     print(process(f"$({Q})"))
 
     print(process(f"$((1, 1)[1])"))
+
+    process(f"$(type = None)")
+
+    print(current_properties)
+
+    print(process(f'$(type)'))
 
 
     # # Example of setting global variables for testing

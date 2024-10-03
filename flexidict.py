@@ -112,7 +112,7 @@ def load_yaml_to_FlexiDict(yaml_file_path):
 
 
 if __name__ == "__main__":
-    t = load_yaml_to_FlexiDict('example.yaml')
+    t = load_yaml_to_FlexiDict('drone.yaml')
     print(t)
     print()
     # print(type(t))
