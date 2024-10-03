@@ -452,6 +452,7 @@ def part_process(item, previous_level_local_key_list, process_level):
         raise Exception(f"Error processing part. {e}")
 
 
+ite = 0
 def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
     temp = process_value.current_properties
     process_value.current_properties = properties
@@ -519,7 +520,11 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
 
 
+
+
     def process_level(layer: list, previous_level_local_key_list: list):
+        global ite
+        ite += 1
         local_key_list = []
         global current_local_key_list
         current_local_key_list = local_key_list
@@ -528,6 +533,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
             item[0] = process(item[0])################## still not sure if its good idea to change the original yaml read data
             # print(file_data)
 
+            # print('ite: ', ite, "prop: ", properties['default']['variables'])
             if item[0] == 'part':
                 part_process(copy.deepcopy(item[1]), local_key_list, process_level)
 
@@ -601,8 +607,11 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                     raise Exception(f"Error processing for loop. {e}")
 
             elif item[0] == 'if':
+                # print(properties['default']['variables'])
                 try:
-                    condition = process(item[1]['condition'][0])
+                    condition = process(f'$({item[1]['condition'][0]})')
+                    # print(item[1]['condition'][0])
+                    # print(condition)
                     if (eval(condition)):
                         process_level(item[1]['body'][-1], local_key_list)
                 except Exception as e:
@@ -634,51 +643,181 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                 #             # print(properties)
                 #             process(f'$({passed_input[i]})')
                 #     process_level((properties[ns]['functions'][function_name]['value'])['body'][-1], local_key_list)
-                def CallFunction(ns, function_name):
-                    input_params = process((properties[ns]['functions'][function_name]['value'])['input'][-1]).split(',')
-                    passed_input = (process(item[1])).split(',')
+                # def CallFunction(ns, function_name):
+                #     input_params = process((properties[ns]['functions'][function_name]['value'])['input'][-1]).split(',')
+                #     passed_input = process(item[1] if item[1] is not None else '')
+                #     passed_input = passed_input.split(',') if passed_input is not '' else []
                     
-                    # Clean up input parameters
-                    input_params = [param.strip() for param in input_params]
+                #     # Clean up input parameters
+                #     input_params = [param.strip() for param in input_params]
                     
-                    # Process any default assignments in input_params
-                    for i in range(len(input_params)):
-                        if ':=' in input_params[i]:
-                            input_params[i] = input_params[i].replace(':=', '=')
-                            process(f'$({input_params[i].strip()})')
-                        elif '=' in input_params[i]:
-                            process(f'$({input_params[i].strip()})')
-                        else:
-                            input_params[i] = f'{input_params[i]}'
-                        input_params[i] = (input_params[i].split('=')[0]).strip()
+                #     # Process any default assignments in input_params
+                #     for i in range(len(input_params)):
+                #         if ':=' in input_params[i]:
+                #             input_params[i] = input_params[i].replace(':=', '=')
+                #             process(f'$({input_params[i].strip()})')
+                #         elif '=' in input_params[i]:
+                #             print(f'$({input_params[i].strip()})')
+                #             print(f'$({input_params[i].strip()})')
+                #             print(f'$({input_params[i].strip()})')
+                #             process(f'$({input_params[i].strip()})')
+                #             print(process(f'$(x)'))
+                #         else:
+                #             input_params[i] = f'{input_params[i]}'
+                #         input_params[i] = (input_params[i].split('=')[0]).strip()
 
-                    for i in range(len(passed_input)):
-                        passed_input[i] = passed_input[i].strip()
-                        if ':=' in passed_input[i]:
-                            passed_input[i] = passed_input[i].replace(':=', '=')
-                            process(f'$({passed_input[i].strip()})')
-                        elif '=' in passed_input[i]:
-                            process(f'$({passed_input[i].strip()})')
+                #     for i in range(len(passed_input)):
+                #         passed_input[i] = passed_input[i].strip()
+                #         if ':=' in passed_input[i]:
+                #             passed_input[i] = passed_input[i].replace(':=', '=')
+                #             process(f'$({passed_input[i].strip()})')
+                #         elif '=' in passed_input[i]:
+                #             print('aaaaaaaaa', f'$({passed_input[i].strip()})')
+                #             process(f'$({passed_input[i].strip()})')
+                #             print(process(f'$(x)'))
+                #         else:
+                #             value = passed_input[i]
+                #             # Check if value is enclosed in quotes
+                #             if (value.startswith("'") and value.endswith("'")) or (value.startswith('"') and value.endswith('"')):
+                #                 # Value is a string literal, keep it as is
+                #                 pass
+                #             else:
+                #                 # Try to evaluate the value to see if it's a number or variable
+                #                 try:
+                #                     evaluated_value = eval(value, {}, {})
+                #                     # If evaluation succeeds, use the evaluated value
+                #                     value = str(evaluated_value)
+                #                 except Exception:
+                #                     # If evaluation fails, treat it as a string literal
+                #                     value = f'"{value}"'
+                #             passed_input[i] = f'{input_params[i]}={value}'
+                #             process(f'$({passed_input[i]})')
+
+                #     process_level((properties[ns]['functions'][function_name]['value'])['body'][-1], local_key_list)
+                # def CallFunction(ns, function_name):
+                #     input_params_str = process((properties[ns]['functions'][function_name]['value'])['input'][-1])
+                #     input_params_list = [param.strip() for param in input_params_str.split(',')]
+
+                #     # Build a list of parameter names and default values
+                #     param_defaults = []
+                #     for param in input_params_list:
+                #         if '=' in param:
+                #             param_name, default_value = [p.strip() for p in param.split('=', 1)]
+                #             param_defaults.append((param_name, default_value))
+                #         else:
+                #             param_name = param.strip()
+                #             param_defaults.append((param_name, None))
+
+                #     # Build a list of passed arguments
+                #     passed_input_str = process(item[1] if item[1] is not None else '')
+                #     passed_input_list = [arg.strip() for arg in passed_input_str.split(',')] if passed_input_str else []
+
+                #     args = []
+                #     kwargs = {}
+                #     for arg in passed_input_list:
+                #         if '=' in arg:
+                #             arg_name, arg_value = [a.strip() for a in arg.split('=', 1)]
+                #             kwargs[arg_name] = arg_value
+                #         else:
+                #             args.append(arg)
+
+                #     # Now match arguments to parameters
+                #     local_vars = {}
+                #     param_index = 0
+                #     # Assign positional arguments
+                #     for arg in args:
+                #         if param_index >= len(param_defaults):
+                #             raise TypeError(f"Too many positional arguments provided to function '{function_name}'")
+                #         param_name, _ = param_defaults[param_index]
+                #         # Evaluate arg
+                #         arg_value = process(arg)
+                #         local_vars[param_name] = arg_value
+                #         param_index += 1
+
+                #     # Assign keyword arguments and defaults
+                #     for param_name, default_value in param_defaults[param_index:]:
+                #         if param_name in kwargs:
+                #             arg_value = kwargs[param_name]
+                #             # Evaluate arg_value
+                #             arg_value = process(arg_value)
+                #             local_vars[param_name] = arg_value
+                #         elif default_value is not None:
+                #             # Evaluate default_value
+                #             default_value = process(default_value)
+                #             local_vars[param_name] = default_value
+                #         else:
+                #             raise TypeError(f"Missing required argument '{param_name}' in function '{function_name}'")
+
+                #     # Now assign variables to properties
+                #     for var_name, var_value in local_vars.items():
+                #         # Process the variable assignment
+                #         process(f'$({var_name} = {var_value})')
+
+                #     # Then call the function body
+                #     process_level((properties[ns]['functions'][function_name]['value'])['body'][-1], local_key_list)
+                def CallFunction(ns, function_name):
+                    input_params_str = process((properties[ns]['functions'][function_name]['value'])['input'][-1])
+                    input_params_list = [param.strip() for param in input_params_str.split(',')]
+
+                    # Build a list of parameter names and default values
+                    param_defaults = []
+                    for param in input_params_list:
+                        if '=' in param:
+                            param_name, default_value = [p.strip() for p in param.split('=', 1)]
+                            param_defaults.append((param_name, default_value))
                         else:
-                            value = passed_input[i]
-                            # Check if value is enclosed in quotes
-                            if (value.startswith("'") and value.endswith("'")) or (value.startswith('"') and value.endswith('"')):
-                                # Value is a string literal, keep it as is
-                                pass
-                            else:
-                                # Try to evaluate the value to see if it's a number or variable
-                                try:
-                                    evaluated_value = eval(value, {}, {})
-                                    # If evaluation succeeds, use the evaluated value
-                                    value = str(evaluated_value)
-                                except Exception:
-                                    # If evaluation fails, treat it as a string literal
-                                    value = f'"{value}"'
-                            passed_input[i] = f'{input_params[i]}={value}'
-                            process(f'$({passed_input[i]})')
+                            param_name = param.strip()
+                            param_defaults.append((param_name, None))
+
+                    # Build a list of passed arguments
+                    passed_input_str = process(item[1] if item[1] is not None else '')
+                    passed_input_list = [arg.strip() for arg in passed_input_str.split(',')] if passed_input_str else []
+
+                    args = []
+                    kwargs = {}
+                    for arg in passed_input_list:
+                        if '=' in arg:
+                            arg_name, arg_value = [a.strip() for a in arg.split('=', 1)]
+                            kwargs[arg_name] = arg_value
+                        else:
+                            args.append(arg)
+
+                    # Now assign arguments to parameters
+                    local_vars = {}
+                    positional_index = 0
+
+                    for param_name, default_value in param_defaults:
+                        if param_name in kwargs:
+                            # Assign from keyword arguments
+                            arg_value = kwargs.pop(param_name)
+                            arg_value = process(arg_value)
+                            local_vars[param_name] = arg_value
+                        elif positional_index < len(args):
+                            # Assign from positional arguments
+                            arg_value = args[positional_index]
+                            arg_value = process(arg_value)
+                            local_vars[param_name] = arg_value
+                            positional_index += 1
+                        elif default_value is not None:
+                            # Assign default value
+                            arg_value = process(default_value)
+                            local_vars[param_name] = arg_value
+                        else:
+                            raise TypeError(f"Missing required argument '{param_name}' in function '{function_name}'")
+
+                    if kwargs:
+                        # There are unexpected keyword arguments
+                        raise TypeError(f"Function '{function_name}' got unexpected keyword arguments {list(kwargs.keys())}")
+
+                    # Now assign variables to properties
+                    for var_name, var_value in local_vars.items():
+                        # Process the variable assignment
+                        process(f'$({var_name} = {repr(var_value)})')
+
+                    # Then call the function body
                     process_level((properties[ns]['functions'][function_name]['value'])['body'][-1], local_key_list)
 
-                    
+                                                                    
 
                 tag = item[0].split('.')
                 if len(tag) == 2 and tag[0] in properties.keys(): #if namespace is defined

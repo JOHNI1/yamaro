@@ -7,8 +7,8 @@ functions:
   MakePart:
     input: 'name, type, parent, xyz, rpy, geometry, scale'
     body:
-      hi/person=john, a=x:
-        hi/person=john:
+      # hi/person=john, a=x:
+      #   hi/person=john:
       part: 
         name: $(name)
         joint:
@@ -21,8 +21,12 @@ functions:
           scale: $(scale)
           collision:
           visual:
+            # bye/person=john, a=x:
+            #   bruh/person=john:
           inertial:
             mass: 1
+            # waht/person=john, a=x:
+            #   what/person=john:
                
 
 
@@ -45,5 +49,66 @@ model:
   #     xyz: 0 0 0
   #     rpy: 0 0 0
   #     collision:
+
+
+
+
+
+# robot: drone
+
+# variables:
+#   for/global: for
+
+# functions:
+#   SayHI:
+#     input: x=0
+#     body:
+#       if:
+#         condition: x < 10
+#         body:
+#           print: iteration:$(' '+str(x))
+#           SayHI: x=x+1
+#   # MakePart:
+#   #   input: 'name, type, parent, xyz, rpy, geometry, scale'
+#   #   body:
+#   #     hi/person=john, a=x:
+#   #       hi/person=john:
+#   #     part: 
+#   #       name: $(name)
+#   #       joint:
+#   #         type: $(type)
+#   #         parent: $(parent)
+#   #         xyz: $(xyz)
+#   #         rpy: $(rpy)
+#   #       link:
+#   #         geometry: $(geometry)
+#   #         scale: $(scale)
+#   #         collision:
+#   #         visual:
+#   #         inertial:
+#   #           mass: 1
+               
+
+
+
+# model:
+#   $('for'):
+#     iterator: i
+#     range: 1
+#     body:
+#       SayHI:
+#       # MakePart: part$(i), fixed, parent='root_link', '$(i) $(i) $(i)', rpy='$(i) $(i) $(i)', geometry='box', scale='1 1 1'  # part: 
+#   #   name: base
+#   #   joint:
+#   #     type: fixed
+#   #     parent: root_link
+#   #     xyz:
+#   #     rpy:
+#   #   link:
+#   #     geometry: Box
+#   #     scale: 1 1 1
+#   #     xyz: 0 0 0
+#   #     rpy: 0 0 0
+#   #     collision:
 
 

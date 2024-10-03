@@ -507,19 +507,29 @@ def process_value(value, properties, local_key_list) -> str:
                 #         # Keep the existing scope of the variable
                 #         current_scope = properties['default']['variables'][var_name]['scope']
                 #         properties['default']['variables'][var_name] = {'value': local_vars[var_name], 'scope': current_scope}
-                for var_name in local_vars:
+                # for var_name in local_vars:
+                #     # Strip extra quotes from the variable value
+                #     var_value = local_vars[var_name]
+                #     if isinstance(var_value, str):
+                #         var_value = var_value.strip('\'"')
+                #     # Track new local variables
+                #     if var_name not in properties['default']['variables']:
+                #         local_key_list.append(var_name)
+                #         properties['default']['variables'][var_name] = {'value': var_value, 'scope': 'local'}
+                #     else:
+                #         # Keep the existing scope of the variable
+                #         current_scope = properties['default']['variables'][var_name]['scope']
+                #         properties['default']['variables'][var_name] = {'value': var_value, 'scope': current_scope}
+                for var_name, var_value in local_vars.items():
                     # Strip extra quotes from the variable value
-                    var_value = local_vars[var_name]
                     if isinstance(var_value, str):
                         var_value = var_value.strip('\'"')
-                    # Track new local variables
-                    if var_name not in properties['default']['variables']:
+                    # Assign the variable in the properties with 'local' scope
+                    properties['default']['variables'][var_name] = {'value': var_value, 'scope': 'local'}
+                    # Add the variable name to the local_key_list
+                    if var_name not in local_key_list:
                         local_key_list.append(var_name)
-                        properties['default']['variables'][var_name] = {'value': var_value, 'scope': 'local'}
-                    else:
-                        # Keep the existing scope of the variable
-                        current_scope = properties['default']['variables'][var_name]['scope']
-                        properties['default']['variables'][var_name] = {'value': var_value, 'scope': current_scope}
+
 
                 evaluated = ''
             else:
