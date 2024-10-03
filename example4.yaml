@@ -1,0 +1,23 @@
+robot: recursive_robot
+
+functions:
+  RecursivePart:
+    input: depth=0
+    body:
+      if:
+        condition: depth < 3
+        body:
+          part:
+            name: part_$(depth)
+            joint:
+              type: fixed
+              parent: root_link
+              xyz: $(depth) 0 0
+              rpy: '0 0 0'
+            link:
+              geometry: box
+              scale: '1 1 1'
+              mass: 1.0
+              collision:
+              visual:
+          RecursivePart: depth=$(depth + 1)

@@ -1,0 +1,31 @@
+
+model:
+  RecursivePart:
+
+
+robot: namespace_robot
+
+variables:
+  
+
+functions:
+  Namespace1.CreateArm:
+    input: 'name, length=1.0'
+    body:
+      part:
+        name: $(name)
+        joint:
+          type: revolute
+          parent: base_link
+          xyz: '0 0 0'
+          rpy: '0 0 0'
+        link:
+          geometry: box
+          scale: '$(length) 0.1 0.1'
+          mass: 0.5
+          collision:
+          visual:
+
+model:
+  Namespace1.CreateArm: arm_left, length=1.2
+  Namespace1.CreateArm: arm_right

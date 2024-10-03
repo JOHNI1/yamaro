@@ -1,129 +1,29 @@
-variables:
-  # A/global: [30, 120, 210, 300]
-  # B/parent: {x: '$(pow(2, 10))', y: '$(A[1]+5)'}
-  # C/child: $(return_hi())
-  B/child: 
-  C/local: $(A[0])_$(f'{A[1]}')
-  D/local: 
-    - 10
-    - 20
-    - 30
-    - 40
-
-functions:
-  # ConvertToDegrees:
-  #   input: radians **block
-  #   body:
-  #     include:
-  #       namespace: X
-  #       path: /var/
-
-        
+robot: simple_robot
 
 model:
-  for:
-    iterator: j
-    range: 3, 1, -1
-    body:
-      print: 'internal j: $(j)'
-  #     include:
-  #       path: example.yaml
-
-  # part: 
-  #   name: base_link
-  #   joint:
-  #     _type: fixed
-  #     _parent: root_link
-  #     _xyz:
-  #     _rpy:
-  #     gazebo:
-
-
-  #   link:
-  #     _geometry: Box
-  #     _scale: 1 1 1
-  #     _xyz:
-  #     _rpy:
-
-
-# variables:
-#   A/global: [10, 20]
-#   B/parent: {x: 4, y: 6}
-#   C/child: byeeee
-#   D/local: 
-#     - 10
-#     - 20
-
-
-
-
-
-
-
-
-
-
-# variables:
-#   legs_angles/global: [30, 120, 210, 300]
-#   angles: 
-#     - 10
-#     - 20
-#     - 30
-#     - 40
-
-# functions:
-#   convert_to_degrees:
-#     input: radians
-#     output: output
-#     funciton:
-
-
-# print() 
-
-# model:
-#   part:
-#     name: base
-#     joint:
-#       type: fixed
-#       parent: root_link
-#       xyz:
-#       rpy:
-#     link:
-#       geometry: Box
-#       scale: 1 1 1
-#       xyz:
-#       rpy:
-
-#       collision:
-#       inertia:
-#         mass: 10
-#       visual:
-#         geometry: Cylinder
-
-
-#   for:
-#     iterator: i
-#     range: 10
-#     for:
-#       iterator: j
-#       range: 5
-#       if:
-#         condition: ${legs_angles[i]} + ${legs_angles[j]} > 360
-#         body:
-#           name: leg_${i}_${j}
-#           joint:
-#   for:
-#     iterator: i
-#     range: 10
-#     for:
-#       iterator: j
-#       range: 5
-#       if:
-#         condition: ${legs_angles[i]} + ${legs_angles[j]} > 360
-#         body:
-#           name: leg_${i}_${j}
-#           joint:
-
-
-
-
+  part:
+    name: base_link
+    joint:
+      type: fixed
+      parent: root_link
+      xyz: '0 0 0'
+      rpy: '0 0 0'
+    link:
+      geometry: box
+      scale: '1 1 1'
+      mass: 1.0
+      collision:
+      visual:
+  part:
+    name: arm_link
+    joint:
+      type: revolute
+      parent: base_link
+      xyz: '0 0 1'
+      rpy: '0 0 0'
+    link:
+      geometry: box
+      scale: '0.5 0.5 1.0'
+      mass: 0.5
+      collision:
+      visual:
