@@ -1,0 +1,51 @@
+functions:
+  CreateBase:
+    input: 'name, height'
+    body:
+      part:
+        name: $(name)
+        joint:
+          type: fixed
+          parent: 'root_link'
+          xyz: '0 0 0'
+          rpy: '0 0 0'
+        link:
+          geometry: box
+          scale: '1.0 1.0 $(height)'
+          mass: 5.0
+          collision:
+          visual:
+
+  CreateArm:
+    input: 'name, parent, length, side'
+    body:
+      part:
+        name: $(name)
+        joint:
+          type: revolute
+          parent: $(parent)
+          xyz: '0 $(side) 0.5'
+          rpy: '0 0 0'
+        link:
+          geometry: cylinder
+          scale: '0.1 $(length)'
+          mass: 2.0
+          collision:
+          visual:
+
+  CreateLeg:
+    input: 'name, parent, length, position'
+    body:
+      part:
+        name: $(name)
+        joint:
+          type: revolute
+          parent: $(parent)
+          xyz: $(Utils.GetLegPosition($(position)))
+          rpy: '0 0 0'
+        link:
+          geometry: cylinder
+          scale: '0.1 $(length)'
+          mass: 1.5
+          collision:
+          visual:

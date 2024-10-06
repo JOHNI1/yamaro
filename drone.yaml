@@ -1,15 +1,14 @@
 robot: drone
 
 variables:
-  for/global: for
 
 functions:
   MakePart:
-    input: 'name, type, parent, xyz, rpy, geometry, scale'
+    input: name, type, parent, xyz, rpy, geometry, scale, **Block_To_Insert
     body:
       # hi/person=john, a=x:
       #   hi/person=john:
-      part: 
+      part:
         name: $(name)
         joint:
           type: $(type)
@@ -25,6 +24,7 @@ functions:
             #   bruh/person=john:
           inertial:
             mass: 1
+          Block_To_Insert:
             # waht/person=john, a=x:
             #   what/person=john:
                
@@ -32,11 +32,22 @@ functions:
 
 
 model:
-  $('for'):
+  for:
     iterator: i
     range: 1
     body:
-      MakePart: part$(i), fixed, parent='root_link', '$(i) $(i) $(i)', rpy='$(i) $(i) $(i)', geometry='box', scale='1 1 1'  # part: 
+      MakePart:
+        name: part$(i)
+        type: fixed
+        parent: root_link
+        xyz: '$(i) $(i) $(i)'
+        rpy: '$(i) $(i) $(i)'
+        geometry: box
+        scale: '1 1 1'
+        Block_To_Insert:
+          ahi/person=john:
+
+      # MakePart: part$(i), fixed, parent='root_link', '$(i) $(i) $(i)', rpy='$(i) $(i) $(i)', geometry='box', scale='1 1 1'  # part: 
   #   name: base
   #   joint:
   #     type: fixed

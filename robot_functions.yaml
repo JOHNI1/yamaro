@@ -1,0 +1,62 @@
+functions:
+  BuildSymmetricArms:
+    input: 'parent, length, side_offset, count=2'
+    body:
+      variables:
+        sides/local: ['left', 'right']
+      for:
+        iterator: i
+        range: $(count)
+        body:
+          Parts.CreateArm:
+            name: 'arm_$(sides[$(i)])'
+            parent: $(parent)
+            length: $(length)
+            side: $(Utils.GetSideOffset($(sides[$(i)]), $(side_offset)))
+
+  BuildLegs:
+    input: 'parent, length, positions'
+    body:
+      for:
+        iterator: pos
+        in: $(positions)
+        body:
+          Parts.CreateLeg:
+            name: 'leg_$(pos)'
+            parent: $(parent)
+            length: $(length)
+            position: $(pos)
+
+  GetSideOffset:
+    input: 'side, offset'
+    body:
+      if:
+        condition: 'side == "left"'
+        body:
+          result = -offset
+      else:
+        result = offset
+      return $(result)
+
+  GetLegPosition:
+    input: 'position'
+    body:
+      if:
+        condition: 'position == "front_left"'
+        body:
+          result = "-0.5 0.5 0"
+      elif:
+        condition: 'position == "front_right"'
+        body:
+          result = "-0.5 -0.5 0"
+      elif:
+        condition: 'position == "back_left"'
+        body:
+          result = "0.5 0.5 0"
+      elif:
+        condition: 'position == "back_right"'
+        body:
+          result = "0.5 -0.5 0"
+      else:
+        result = "0 0 0"
+      return $(result)

@@ -1,0 +1,37 @@
+robot: ultimate_robot
+
+variables:
+  base_height/global: 0.5
+  arm_length/global: 1.0
+  leg_length/global: 0.8
+
+include:
+  path: robot_parts.yaml
+  namespace: Parts
+
+include:
+  path: robot_functions.yaml
+  namespace: Utils
+
+functions:
+  BuildRobot:
+    input: ''
+    body:
+      # Build the base
+      Parts.CreateBase:
+        name: 'base_link'
+        height: $(base_height)
+      # Build arms
+      Utils.BuildSymmetricArms:
+        parent: 'base_link'
+        length: $(arm_length)
+        side_offset: 0.5
+        count: 2
+      # Build legs
+      Utils.BuildLegs:
+        parent: 'base_link'
+        length: $(leg_length)
+        positions: ['front_left', 'front_right', 'back_left', 'back_right']
+
+model:
+  BuildRobot:
