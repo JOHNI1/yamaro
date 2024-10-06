@@ -19,11 +19,14 @@ functions:
           geometry: $(geometry)
           scale: $(scale)
           collision:
+            Block_To_Insert:
           visual:
+            Block_To_Insert:
             # bye/person=john, a=x:
             #   bruh/person=john:
           inertial:
             mass: 1
+            Block_To_Insert:
           Block_To_Insert:
             # waht/person=john, a=x:
             #   what/person=john:
@@ -45,7 +48,10 @@ model:
         geometry: box
         scale: '1 1 1'
         Block_To_Insert:
-          ahi/person=john:
+          gazebo:
+            a: 1
+            # gazebo/a=$(1+3):
+              # process:
 
       # MakePart: part$(i), fixed, parent='root_link', '$(i) $(i) $(i)', rpy='$(i) $(i) $(i)', geometry='box', scale='1 1 1'  # part: 
   #   name: base

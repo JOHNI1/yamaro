@@ -1,6 +1,6 @@
 import os
 import sys
-from flexidict import load_yaml_to_FlexiDict
+from flexidict import load_yaml_to_FlexiDict, FlexiDict
 from process_value import process
 import process_value
 from pretty_print_dict import pretty_print_dict
@@ -20,6 +20,7 @@ def untab_():
     spaces -= tab
 
 def add_line_to_urdf(line):
+
     global urdf_output
     urdf_output += f"{' ' * spaces}{line}\n"
 
@@ -28,34 +29,6 @@ def split_(s):
     return re.split(r'[,\s]+', s.strip())
 
 
-# def xml(element, attributes={}, body=[], *args, **kwargs):
-#     if len(body) > 0:
-#         argument = ''.join(f' {key}="{attributes[key]}"' for key in attributes.keys())
-#         add_line_to_urdf(f'<{element}{argument}>')
-#         tab_()
-    
-#         for func in body:
-#             func(*args, **kwargs)
-
-#         untab_()
-#         add_line_to_urdf(f'</{element}>')
-#     else:
-#         argument = ''.join(f' {key}="{attributes[key]}"' for key in attributes.keys())
-#         add_line_to_urdf(f'<{element}{argument}/>')
-# def xml(element, attributes={}, body=[], *args, **kwargs):
-#     if len(body) > 0:
-#         argument = ''.join(' {key}="{value}"'.format(key=key, value=str(attributes[key]).strip('"')) for key in attributes)
-#         add_line_to_urdf('<{element}{argument}>'.format(element=element, argument=argument))
-#         tab_()
-    
-#         for func in body:
-#             func(*args, **kwargs)
-
-#         untab_()
-#         add_line_to_urdf('</{element}>'.format(element=element))
-#     else:
-#         argument = ''.join(' {key}="{value}"'.format(key=key, value=str(attributes[key]).strip('"')) for key in attributes)
-#         add_line_to_urdf('<{element}{argument}/>'.format(element=element, argument=argument))
 def xml(element, attributes={}, body=[], *args, **kwargs):
     if len(body) > 0:
         argument = ''.join(' {key}="{value}"'.format(key=key, value=str(attributes[key]).strip('\'"')) for key in attributes)
@@ -72,42 +45,9 @@ def xml(element, attributes={}, body=[], *args, **kwargs):
         add_line_to_urdf('<{element}{argument}/>'.format(element=element, argument=argument))
         
 
-def CallFunction(ns, function_name, process_level, local_key_list, layer):
-    function_args = []
-    function_inputs = process((properties[ns]['functions'][function_name]['value'])['input'][-1]).split(',')
-    passed_param_list = []
-
-    for param in function_inputs:
-        if '**' in param:
-            if (param.replace('*', '').strip() not in list(properties['default']['functions'].keys())):
-                if ((param.replace('*', '').strip())[0]).isupper():
-                    function_args.append(param.replace('*', '').strip())
-                else:
-                    raise ValueError(f"The function parameter '{param}' has to have a name that starts with an uppercase letter.")
-            else:
-                raise ValueError(f"The function parameter '{param}' is defined already!.")
-
-    for key in layer.keys():
-        processed_key = process(key)
-        if processed_key in function_args:
-            properties['default']['functions'][processed_key] = {'value': {'input': '', 'body': layer[key][-1]}, 'scope': 'local'}
-        else:
-            passed_param_list.append(processed_key)
-            process(f'$({processed_key} = "{process(layer[key][-1])}")')
-                                                    
-    for param in function_inputs:
-        if '=' in param:
-            if param.split('=')[0].strip() not in passed_param_list:
-                process(f'$({param.split("=")[0].strip()} = "{process(param.split("=")[1].strip())}")')
-
-    print('hiiiiiiii: ', (properties[ns]['functions'][function_name]['value'])['body'][-1])
-    process_level((properties[ns]['functions'][function_name]['value'])['body'][-1], local_key_list)
-
-
 
 def part_process(item, local_key_list, process_level):
 
-                
     try:
         if process(item[0][0]) == 'name':
             name = split_(process(item[0][1]))
@@ -126,7 +66,7 @@ def part_process(item, local_key_list, process_level):
 
         j = []
 
-        joint_extras = []
+        j_extras = FlexiDict()
 
         for item_ in joint:
             key = process(item_[0])
@@ -139,10 +79,8 @@ def part_process(item, local_key_list, process_level):
                     value = value.strip('\'"')
                 vars[key] = value if value is not None else vars[key]
             else:
-                joint_extras.append((key, process(item_[1])))
+                j_extras.add(key, item_[1])
                 
-
-        j.append(lambda: process_level(item_[1], local_key_list))
 
         origin = {'xyz': vars['xyz'], 'rpy': vars['rpy']}
         child = {'link': name[1]}
@@ -156,6 +94,8 @@ def part_process(item, local_key_list, process_level):
 
         for i in range(len(default_joint_setup)):
             j.insert(i, default_joint_setup[i])
+
+        j.append(lambda j_extras=j_extras: process_level(j_extras, local_key_list))
 
         xml('joint', {'name': name[0], 'type': vars['type']}, j)
 
@@ -172,9 +112,11 @@ def part_process(item, local_key_list, process_level):
         vars = dict(geometry=None, scale=None, mass=None, xyz='0 0 0', rpy='0 0 0')
 
         l = []
+        l_extras = FlexiDict()
         l_comp_list = []
         for index, item_ in enumerate(link):
             key = process(item_[0])
+            l_comp_extras = FlexiDict()
 
             l_comp_list.append([])
 
@@ -201,23 +143,8 @@ def part_process(item, local_key_list, process_level):
                             sub_value = process(sub_item[1])
                             sub_vars[sub_key] = sub_value if sub_value is not None else vars[key]
                         elif not sub_key == '':
-                            # ele_att = sub_key.split('/')
-                            # att = {}
-                            # if len(ele_att) > 1:
-                            #     attributes = ele_att[1].split(',')
-                            #     for attribute in attributes:
-                            #         if ':' in attribute:
-                            #             att[attribute.split(':')[0]] = attribute.split(':')[1]
-                            #         elif ':=' in attribute:
-                            #             att[attribute.split(':=')[0]] = attribute.split(':=')[1]
-                            #         else:
-                            #             att[attribute.split('=')[0]] = attribute.split('=')[1]
-                            # # Capture variables by value
-                            # l_comp_list[index].append(
-                            #     lambda ele_att=ele_att[0], att=att, sub_item=sub_item: xml(
-                            #         ele_att, att, [lambda: process_level(sub_item[1], local_key_list)]
-                            #     )
-                            # )
+                            l_comp_extras.add(sub_key, sub_item[1])
+                            
 
                     if 'inertia' not in sub_vars.keys():
                         if sub_vars['geometry'].lower() == 'box':
@@ -245,6 +172,7 @@ def part_process(item, local_key_list, process_level):
                             ),
                         )
                     )
+                    l_comp_list[index].append(lambda l_comp_extras=l_comp_extras: process_level(l_comp_extras, local_key_list))
                     l.append(lambda key=key, body=l_comp_list[index]: xml(key, body=body))
 
                 elif key in 'collision visual'.split():
@@ -259,23 +187,8 @@ def part_process(item, local_key_list, process_level):
                             sub_value = process(sub_item[1])
                             sub_vars[sub_key] = sub_value if sub_value is not None else vars[key]
                         elif not sub_key == '':
-                            # ele_att = sub_key.split('/')
-                            # att = {}
-                            # if len(ele_att) > 1:
-                            #     attributes = ele_att[1].split(',')
-                            #     for attribute in attributes:
-                            #         if ':' in attribute:
-                            #             att[attribute.split(':')[0]] = attribute.split(':')[1]
-                            #         elif ':=' in attribute:
-                            #             att[attribute.split(':=')[0]] = attribute.split(':=')[1]
-                            #         else:
-                            #             att[attribute.split('=')[0]] = attribute.split('=')[1]
-                            # # Capture variables by value
-                            # l_comp_list[index].append(
-                            #     lambda ele_att=ele_att[0], att=att, sub_item=sub_item: xml(
-                            #         ele_att, att, [lambda: process_level(sub_item[1], local_key_list)]
-                            #     )
-                            # )
+                            l_comp_extras.add(sub_key, sub_item[1])
+
                     if sub_vars['geometry'].lower() == 'box':
                         l_comp_list[index].append(
                             lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('box', attributes=dict(size=sub_vars['scale']))])
@@ -296,25 +209,15 @@ def part_process(item, local_key_list, process_level):
                         lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy']))
                     )
 
+                    l_comp_list[index].append(lambda l_comp_extras=l_comp_extras: process_level(l_comp_extras, local_key_list))
                     l.append(lambda key=key, body=l_comp_list[index]: xml(key, body=body))
             else:
-                if not key[0].isupper():
-                    # ele_att = key.split('/')
-                    # att = {}
-                    # if len(ele_att) > 1:
-                    #     attributes = ele_att[1].split(',')
-                    #     for attribute in attributes:
-                    #         if ':' in attribute:
-                    #             att[attribute.split(':')[0]] = attribute.split(':')[1]
-                    #         elif ':=' in attribute:
-                    #             att[attribute.split(':=')[0]] = attribute.split(':=')[1]
-                    #         else:
-                    #             att[attribute.split('=')[0]] = attribute.split('=')[1]
-                    # l.append(
-                    #     lambda ele_att=ele_att[0], att=att, item_=item_: xml(
-                    #         ele_att, att, [lambda: process_level(item_[1], local_key_list)]
-                    #     )
-                    # )
+                l_extras.add(key, item_[1])
+
+
+        
+        l.append(lambda l_extras=l_extras: process_level(l_extras, local_key_list))
+
 
 
         xml('link', {'name': name[1]}, l)
@@ -348,7 +251,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
     print('before: ',properties, '\n')
 
     # Process variables and functions in the current file
-    print(file_data)
+    # print(file_data)
     if 'variables' in file_data.keys():
         for key, value in file_data['variables'][-1] if file_data['variables'][-1] is not None else []:
             tag = key.split('/')
@@ -409,11 +312,10 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
             # print('ite: ', ite, "prop: ", properties['default']['variables'])
             if item[0] == 'part':
-                print('item[1]: ', item[1])
                 part_process(copy.deepcopy(item[1]), local_key_list, process_level)
 
             elif item[0] == 'process':
-                pass
+                process(f'$({item[1]})')
             elif item[0] == 'print':
                 # ANSI escape codes for colors
                 GREEN = "\033[32m"
@@ -492,16 +394,57 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                 except Exception as e:
                     raise Exception(f"Error processing for loop. {e}")
             elif item[0][0].isupper():  #function                      
+                def CallFunction(ns, function_name):
+                    function_args = []
+                    # print(properties['default'])
+                    # print()
+                    # print(process((properties[ns]['functions'][function_name]['value'])['input'][-1]))
+                    # print()
+                    # print(f"aaaaa {function_name}: ", (properties[ns]['functions'][function_name]['value'])['input'][-1])
+                    # print()
+                    # print(item)
+                    function_inputs = process((properties[ns]['functions'][function_name]['value'])['input'][-1] if (properties[ns]['functions'][function_name]['value'])['input'][-1] is not None else '').split(',')
+                    passed_param_list = []
+
+                    for param in function_inputs:
+                        if '**' in param:
+                            if (param.replace('*', '').strip() not in list(properties['default']['functions'].keys())):
+                                if ((param.replace('*', '').strip())[0]).isupper():
+                                    function_args.append(param.replace('*', '').strip())
+                                else:
+                                    raise ValueError(f"The function parameter '{param}' has to have a name that starts with an uppercase letter.")
+                            else:
+                                raise ValueError(f"The function parameter '{param}' is defined already!.")
+
+                    if item[1] is not None:
+                        for key in item[1].keys():
+                            processed_key = process(key)
+                            if processed_key in function_args:
+                                value = FlexiDict()
+                                value.add('input', None)
+                                value.add('body', item[1][key][-1])
+                                properties['default']['functions'][processed_key] = {'value': value, 'scope': 'local'}
+                            else:
+                                passed_param_list.append(processed_key)
+                                process(f'$({processed_key} = "{process(item[1][key][-1])}")')
+                                                                    
+                    for param in function_inputs:
+                        if '=' in param:
+                            if param.split('=')[0].strip() not in passed_param_list:
+                                process(f'$({param.split("=")[0].strip()} = "{process(param.split("=")[1].strip())}")')
+
+                    # print('hiiiiiiii: ', (properties[ns]['functions'][function_name]['value'])['body'][-1])
+                    process_level((properties[ns]['functions'][function_name]['value'])['body'][-1], local_key_list)
 
                 tag = item[0].split('.')
                 if len(tag) == 2 and tag[0] in properties.keys(): #if namespace is defined
                     if tag[1] in properties[tag[0]]['functions'].keys():
-                        CallFunction(tag[0], tag[1], process_level, top_local_key_list, item[1])
+                        CallFunction(tag[0], tag[1])
                     else:
                         raise KeyError(f"The function '{tag[1]}' is not defined in namespace '{tag[0]}'. Ensure that the function is defined in the same namespace or use default namespace.")
 
                 elif len(tag) == 1 and tag[0] in properties['default']['functions'].keys():
-                    CallFunction('default', tag[0], process_level, top_local_key_list, item[1])
+                    CallFunction('default', tag[0])
 
                 else:
                     raise ValueError(f"The '{tag}' is causing syntax error. For calling function, ensure that it is defined. If you specified namespace, use namespace.my_function to resolve it. Namespaces cannot be nested!")
@@ -519,30 +462,18 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                         else:
                             att[attribute.split('=')[0]] = attribute.split('=')[1]
                     # Capture 'item' by value in the lambda's default parameters
-                xml(
-                    ele_att[0],
-                    att,
-                    [lambda item=item, local_key_list=local_key_list: process_level(item[1], local_key_list)]
-                )
+                print(type(item[1]))
+                if isinstance(item[1], FlexiDict) or isinstance(item[1], dict) or isinstance(item[1], list) or item[1] is None:
+                    xml(
+                        ele_att[0],
+                        att,
+                        [lambda item1=item[1], local_key_list=local_key_list: process_level(item1, local_key_list)]
+                    )
+                else:
+                    add_line_to_urdf(process(item[1]))
+                
 
 
-                # ele_att = sub_key.split('/')
-                # att = {}
-                # if len(ele_att) > 1:
-                #     attributes = ele_att[1].split(',')
-                #     for attribute in attributes:
-                #         if ':' in attribute:
-                #             att[attribute.split(':')[0]] = attribute.split(':')[1]
-                #         elif ':=' in attribute:
-                #             att[attribute.split(':=')[0]] = attribute.split(':=')[1]
-                #         else:
-                #             att[attribute.split('=')[0]] = attribute.split('=')[1]
-                # # Capture variables by value
-                # l_comp_list[index].append(
-                #     lambda ele_att=ele_att[0], att=att, sub_item=sub_item: xml(
-                #         ele_att, att, [lambda: process_level(sub_item[1], local_key_list)]
-                #     )
-                # )
 
 
         for key in local_key_list:
@@ -554,7 +485,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
 
     process_level(file_data['model'][-1], top_local_key_list)
-    print('after: ',properties, '\n')
+    # print('after: ',properties, '\n')
 
 
     for key in list(properties['default']['variables'].keys()):
