@@ -452,15 +452,16 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                 ele_att = item[0].split('/')
                 att = {}
                 if len(ele_att) > 1:
-                    attributes = ele_att[1].split(',')
-                    for attribute in attributes:
-                        attribute = attribute.lstrip()
-                        if ':' in attribute:
-                            att[attribute.split(':')[0]] = attribute.split(':')[1]
-                        elif ':=' in attribute:
-                            att[attribute.split(':=')[0]] = attribute.split(':=')[1]
-                        else:
-                            att[attribute.split('=')[0]] = attribute.split('=')[1]
+                    if ele_att[1] is not '':
+                        attributes = ele_att[1].split(',')
+                        for attribute in attributes:
+                            attribute = attribute.lstrip()
+                            if ':' in attribute:
+                                att[attribute.split(':')[0]] = attribute.split(':')[1]
+                            elif ':=' in attribute:
+                                att[attribute.split(':=')[0]] = attribute.split(':=')[1]
+                            else:
+                                att[attribute.split('=')[0]] = attribute.split('=')[1]
                     # Capture 'item' by value in the lambda's default parameters
                 print(type(item[1]))
                 if isinstance(item[1], FlexiDict) or isinstance(item[1], dict) or isinstance(item[1], list) or item[1] is None:
@@ -470,7 +471,12 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                         [lambda item1=item[1], local_key_list=local_key_list: process_level(item1, local_key_list)]
                     )
                 else:
-                    add_line_to_urdf(process(item[1]))
+                    argument = ''.join(' {key}="{value}"'.format(key=key, value=str(att[key]).strip('\'"')) for key in att)
+                    add_line_to_urdf('<{element}{argument}>{v}</{element}{argument}>'.format(element=ele_att[0], argument=argument, v=process(item[1])))
+
+
+
+
                 
 
 
