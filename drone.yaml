@@ -1,9 +1,9 @@
 robot: drone
 
 variables:
-  pi: $(math.pi)
-  right: $(float(pi)/2)
-  x: dict(a=1, b=2, c=3)
+  # pi: $(math.pi)
+  # right: $(float(pi)/2)
+  x: $(dict(a=1, b=2, c=3))
   y: {'a': 1, 'b': 2, 'c': 3}
 
 functions:
@@ -34,8 +34,9 @@ functions:
 
 
 model:
-  print: $(right)
-  print: $(x['a'])
+  # print: $(right)
+  print: $(eval(x)['a'])
+  print: $(eval('1+31'))
   print: $(y['a'])
 
   # for:

@@ -510,27 +510,28 @@ def process_value(value, properties, local_key_list) -> str:
     result += value[last_idx:]
     return result
 
-# def AA():
-#     return 1
-# if __name__ == "__main__":
-#     current_properties = {
-#         'default': {
-#             'variables': {
-#                 'x': {'value': 10, 'scope': 'global'}
-#             }
-#         },
-#         'namespace1': {
-#             'variables': {
-#                 'y': {'value': 20, 'scope': 'local'}
-#             }
-#         }
-#     }
-#     current_local_key_list = []
+def AA():
+    return 1
+if __name__ == "__main__":
+    current_properties = {
+        'default': {
+            'variables': {
+                'x': {'value': 10, 'scope': 'global'}
+            }
+        },
+        'namespace1': {
+            'variables': {
+                'y': {'value': 20, 'scope': 'local'}
+            }
+        }
+    }
+    current_local_key_list = []
 
 
-#     print(process(f'$(math.pi)'))
-
-#     print(process('using dict format: $({"a": 1, "b": 2, "c": 3})'))
+    print(process(f'$(math.pi)'))
+    print(process('using dict format: $({"a": 1, "b": 2, "c": 3})'))
+    print(process('using dict format: $(t = dict(a=1, b=2, c=3))'))
+    print(process('$(t["b"])'))
 
 #     print(process(f'using dict function: $(AA())'))
 
