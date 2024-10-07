@@ -317,6 +317,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
             elif item[0] == 'process':
                 process(f'$({item[1]})')
             elif item[0] == 'print':
+                # print(properties)
                 # ANSI escape codes for colors
                 GREEN = "\033[32m"
                 RESET = "\033[0m"  # Reset color to default

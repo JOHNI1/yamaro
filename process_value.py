@@ -389,28 +389,17 @@
 #     print(local)  # Local now contains 'd': 40
 
 
-
 import re
 import flexidict
 from pretty_print_dict import pretty_print_dict
+import math
 
-# from ament_index_python.packages import get_package_share_directory
-
-
-'''global variable for yamaro.py'''
+# Global variable for yamaro.py
 current_properties = dict(default=dict(variables=dict(), functions=dict()))
-
 current_local_key_list = []
-
-
 
 def process(value) -> str:
     global current_properties, current_local_key_list
-    # print(current_properties)
-    # print()
-    # print()
-    # print()
-    # print()
     return process_value(value, current_properties ,current_local_key_list)
 
 def process_value(value, properties, local_key_list) -> str:
@@ -432,7 +421,7 @@ def process_value(value, properties, local_key_list) -> str:
         else:
             return value  # If it's another type, just return it
 
-# Only process the expressions if it's a string
+    # Only process the expressions if it's a string
     def find_expressions(s):
         expressions = []
         idx = 0
@@ -456,8 +445,6 @@ def process_value(value, properties, local_key_list) -> str:
             else:
                 idx += 1
         return expressions
-
-
 
     # Process the string if it's an actual string with expressions
     expressions = find_expressions(value)
@@ -488,38 +475,20 @@ def process_value(value, properties, local_key_list) -> str:
 
         expr_with_vars = replace_variables(expr)
 
-        # Handle variable assignment only for default scope
-        is_assignment = '=' in expr_with_vars
+        # Improved assignment detection using regex
+        is_assignment = re.match(r'^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*=', expr_with_vars.strip()) is not None
+
         if is_assignment and '.' in expr_with_vars.split('=')[0]:
             # Disallow assignment in any namespace except 'default'
             raise RuntimeError(f"Cannot assign in namespaces: {expr_with_vars}")
 
         # Execute the expression
         try:
+            # Include __builtins__ in globals to have access to built-in functions like dict()
+            eval_globals = {"__builtins__": __builtins__}
+            eval_globals.update(globals())
             if is_assignment:
-                exec(expr_with_vars, {}, local_vars)
-                # for var_name in local_vars:
-                #     # Track new local variables
-                #     if var_name not in properties['default']['variables']:
-                #         local_key_list.append(var_name)
-                #         properties['default']['variables'][var_name] = {'value': local_vars[var_name], 'scope': 'local'}
-                #     else:
-                #         # Keep the existing scope of the variable
-                #         current_scope = properties['default']['variables'][var_name]['scope']
-                #         properties['default']['variables'][var_name] = {'value': local_vars[var_name], 'scope': current_scope}
-                # for var_name in local_vars:
-                #     # Strip extra quotes from the variable value
-                #     var_value = local_vars[var_name]
-                #     if isinstance(var_value, str):
-                #         var_value = var_value.strip('\'"')
-                #     # Track new local variables
-                #     if var_name not in properties['default']['variables']:
-                #         local_key_list.append(var_name)
-                #         properties['default']['variables'][var_name] = {'value': var_value, 'scope': 'local'}
-                #     else:
-                #         # Keep the existing scope of the variable
-                #         current_scope = properties['default']['variables'][var_name]['scope']
-                #         properties['default']['variables'][var_name] = {'value': var_value, 'scope': current_scope}
+                exec(expr_with_vars, eval_globals, local_vars)
                 for var_name, var_value in local_vars.items():
                     # Strip extra quotes from the variable value
                     if isinstance(var_value, str):
@@ -529,11 +498,9 @@ def process_value(value, properties, local_key_list) -> str:
                     # Add the variable name to the local_key_list
                     if var_name not in local_key_list:
                         local_key_list.append(var_name)
-
-
                 evaluated = ''
             else:
-                evaluated = str(eval(expr_with_vars, {}, local_vars))
+                evaluated = str(eval(expr_with_vars, eval_globals, local_vars))
         except Exception as e:
             raise RuntimeError(f"Error evaluating expression '{expr_with_vars}': {e}")
 
@@ -543,50 +510,61 @@ def process_value(value, properties, local_key_list) -> str:
     result += value[last_idx:]
     return result
 
-
-if __name__ == "__main__":
-    current_properties = {
-        'default': {
-            'variables': {
-                'x': {'value': 10, 'scope': 'global'}
-            }
-        },
-        'namespace1': {
-            'variables': {
-                'y': {'value': 20, 'scope': 'local'}
-            }
-        }
-    }
-    current_local_key_list = []
-
-    strin = 'root_link'
-    processing_string = f'parent="{strin}"'
-    print(process(f'$({processing_string})'))
-    vari = 'parent'
-    print(process(f'parent: $({vari})'))
-
-    strin = 'root_link'
-    processing_string = f' parent="{strin}"'
-    print(process(f'$({processing_string})'))
-    vari = 'parent'
-    print(process(f'parent: $({vari})'))
+# def AA():
+#     return 1
+# if __name__ == "__main__":
+#     current_properties = {
+#         'default': {
+#             'variables': {
+#                 'x': {'value': 10, 'scope': 'global'}
+#             }
+#         },
+#         'namespace1': {
+#             'variables': {
+#                 'y': {'value': 20, 'scope': 'local'}
+#             }
+#         }
+#     }
+#     current_local_key_list = []
 
 
+#     print(process(f'$(math.pi)'))
 
-    Q = 'a'
-    print(process(f'$({vari})'))
-    print(process(f"$({Q} = '1')"))
-    print(process(f"$({Q})"))
-    print(process(f"$({Q} = 2)"))
-    print(process(f"$({Q})"))
+#     print(process('using dict format: $({"a": 1, "b": 2, "c": 3})'))
 
-    print(process(f"$((1, 1)[1])"))
+#     print(process(f'using dict function: $(AA())'))
 
-    process(f"$(type = None)")
+    # strin = 'root_link'
+    # processing_string = f'parent="{strin}"'
+    # print(process(f'$({processing_string})'))
+    # vari = 'parent'
+    # print(process(f'parent: $({vari})'))
 
-    print(current_properties)
+    # strin = 'root_link'
+    # processing_string = f' parent="{strin}"'
+    # print(process(f'$({processing_string})'))
+    # vari = 'parent'
+    # print(process(f'parent: $({vari})'))
 
-    print(process(f'$(type)'))
+
+
+    # Q = 'a'
+    # print(process(f'$({vari})'))
+    # print(process(f"$({Q} = '1')"))
+    # print(process(f"$({Q})"))
+    # print(process(f"$({Q} = 2)"))
+    # print(process(f"$({Q})"))
+
+    # print(process(f"$((1, 1)[1])"))
+
+    # process(f"$(type = None)")
+
+    # print(current_properties)
+
+    # print(process(f'$(type)'))
+
+
+    # print(current_properties)
 
 
     # # Example of setting global variables for testing
