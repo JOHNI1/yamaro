@@ -256,7 +256,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
     file_data = load_yaml_to_FlexiDict(os.path.expanduser(file_name))
     # print(file_data)
 
-    print('before: ',properties, '\n')
+    # print('before: ',properties, '\n')
 
     # Process variables and functions in the current file
     # print(file_data)
@@ -478,7 +478,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                             else:
                                 att[attribute.split('=')[0]] = attribute.split('=')[1]
                     # Capture 'item' by value in the lambda's default parameters
-                print(type(item[1]))
+                # print(type(item[1]))
                 if isinstance(item[1], FlexiDict) or isinstance(item[1], dict) or isinstance(item[1], list) or item[1] is None:
                     xml(
                         ele_att[0],

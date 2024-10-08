@@ -66,10 +66,10 @@ functions:
 
 
 model:
-  # process: print_properties()
-  # process: import numpy
-  # print: $(right)
-  # print: $(x['a'])
+  process: print_properties()
+  process: import numpy
+  print: $(right)
+  print: $(x['a'])
   print: $(1+pi)
   print: $(y['a'])
 
