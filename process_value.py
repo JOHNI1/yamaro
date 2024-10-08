@@ -393,6 +393,8 @@ import re
 import flexidict
 from pretty_print_dict import pretty_print_dict
 import math
+from ament_index_python.packages import get_package_share_directory
+
 
 # Global variable for yamaro.py
 current_properties = dict(default=dict(variables=dict(), functions=dict()))

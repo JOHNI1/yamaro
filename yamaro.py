@@ -205,6 +205,12 @@ def part_process(item, local_key_list, process_level):
                         l_comp_list[index].append(
                             lambda radius=radius: xml('geometry', body=[lambda: xml('sphere', attributes=dict(radius=radius))])
                         )
+                    else:
+                        l_comp_list[index].append(
+                            lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('mesh', attributes=dict(filename=sub_vars['geometry'], scale=sub_vars['scale']))])
+                        )
+
+
                     l_comp_list[index].append(
                         lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy']))
                     )
