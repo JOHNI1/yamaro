@@ -404,6 +404,8 @@ def process(value) -> str:
     global current_properties, current_local_key_list
     return process_value(value, current_properties ,current_local_key_list)
 
+import json
+
 def process_value(value, properties, local_key_list) -> str:
     # Ensure that the input is processed only if it's a string
     if not isinstance(value, str):
@@ -447,6 +449,19 @@ def process_value(value, properties, local_key_list) -> str:
             else:
                 idx += 1
         return expressions
+
+    # Helper function to automatically detect the data type and convert it
+    def auto_convert(value_str):
+        try:
+            # Try to parse as JSON, which can handle dicts, lists, numbers, and booleans
+            return json.loads(value_str)
+        except (ValueError, TypeError):
+            # If it's not valid JSON, it may still be a valid Python expression
+            try:
+                return eval(value_str)
+            except (SyntaxError, NameError):
+                # Return the original string if all conversions fail
+                return value_str
 
     # Process the string if it's an actual string with expressions
     expressions = find_expressions(value)
@@ -503,14 +518,17 @@ def process_value(value, properties, local_key_list) -> str:
                 evaluated = ''
             else:
                 evaluated = str(eval(expr_with_vars, eval_globals, local_vars))
+                # Convert the evaluated result to its appropriate data type
+                evaluated = auto_convert(evaluated)
         except Exception as e:
             raise RuntimeError(f"Error evaluating expression '{expr_with_vars}': {e}")
 
-        result += evaluated
+        result += str(evaluated)
         last_idx = end
 
     result += value[last_idx:]
     return result
+
 
 def AA():
     return 1
@@ -518,7 +536,8 @@ if __name__ == "__main__":
     current_properties = {
         'default': {
             'variables': {
-                'x': {'value': 10, 'scope': 'global'}
+                'x': {'value': 10, 'scope': 'global'},
+                'y': {'value': 20, 'scope': 'local'}
             }
         },
         'namespace1': {
@@ -529,11 +548,14 @@ if __name__ == "__main__":
     }
     current_local_key_list = []
 
+    process(f'$(a="drone")')
 
+    print(process(f'$(get_package_share_directory(a))'))
     print(process(f'$(math.pi)'))
-    print(process('using dict format: $({"a": 1, "b": 2, "c": 3})'))
-    print(process('using dict format: $(t = dict(a=1, b=2, c=3))'))
+    print(process('using dict format: $(t = {"a": 1, "b": 2, "c": 3})'))
+    # print(process('using dict format: $(t = dict(a=1, b=2, c=3))'))
     print(process('$(t["b"])'))
+    print(process(f'$(x+y)'))
 
 #     print(process(f'using dict function: $(AA())'))
 
