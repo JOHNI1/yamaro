@@ -1,62 +1,91 @@
 robot: drone
 
+import: 
+  - math
+  - ament_index_python.packages
+
 variables:
+  # a: $(import math)
   # pi: $(math.pi)
-  # right: $(float(pi)/2)
+  # right: $(pi/2)
   x: $(dict(a=1, b=2, c=3))
   y: {'a': 1, 'b': 2, 'c': 3}
 
-functions:
-  # MakePart:
-  #   input: name, type, parent, xyz, rpy, geometry, scale, **Block_To_Insert
-  #   body:
-  #     part:
-  #       name: $(name)
-  #       joint:
-  #         type: $(type)
-  #         parent: $(parent)
-  #         xyz: $(xyz)
-  #         rpy: $(rpy)
-  #         Block_To_Insert:
-  #       link:
-  #         geometry: $(geometry)
-  #         scale: $(scale)
-  #         mass: 10
-  #         collision:
-  #           Block_To_Insert:
-  #         visual:
-  #           Block_To_Insert:
-  #         inertial:
-  #           Block_To_Insert:
-  #         Block_To_Insert:
+model:
+  # process: import math
+  # process: import ament_index_python.packages
+  # process: pi=math.pi
+  print: $(print_properties())
+  print: $(get_package_share_directory('drone'))
+  # print: $(1 + pi)     # This should print the result of 1 + pi
+  # print: $(x['a'])     # This should print 1
+  # print: $(y['a'])     # This should print 1
+  # print: $(x)     # This should print 1
+  # print: $(y)     # This should print 1
+
+
+# robot: drone
+
+# variables:
+
+#   pi: $(math.pi)
+#   right: $(pi/2)
+#   x: $(dict(a=1, b=2, c=3))
+#   y: {'a': 1, 'b': 2, 'c': 3}
+
+# functions:
+#   # MakePart:
+#   #   input: name, type, parent, xyz, rpy, geometry, scale, **Block_To_Insert
+#   #   body:
+#   #     part:
+#   #       name: $(name)
+#   #       joint:
+#   #         type: $(type)
+#   #         parent: $(parent)
+#   #         xyz: $(xyz)
+#   #         rpy: $(rpy)
+#   #         Block_To_Insert:
+#   #       link:
+#   #         geometry: $(geometry)
+#   #         scale: $(scale)
+#   #         mass: 10
+#   #         collision:
+#   #           Block_To_Insert:
+#   #         visual:
+#   #           Block_To_Insert:
+#   #         inertial:
+#   #           Block_To_Insert:
+#   #         Block_To_Insert:
                
 
 
 
-model:
-  # print: $(right)
-  print: $(eval(x)['a'])
-  print: $(eval('1+31'))
-  print: $(y['a'])
+# model:
+#   # process: print_properties()
+#   # process: import numpy
+#   # print: $(right)
+#   # print: $(x['a'])
+#   print: $(1+pi)
+#   print: $(y['a'])
 
-  # for:
-  #   iterator: i
-  #   range: 3
-  #   body:
-  # for:
-  #   iterator: i
-  #   range: 1
-  #   body:
-  #     gazebo/name=part$(i):
-  #       a: 1
-  #     MakePart:
-  #       name: part$(i)
-  #       type: fixed
-  #       parent: root_link
-  #       xyz: '$(i) $(i) $(i)'
-  #       rpy: '$(i) $(i) $(i)'
-  #       geometry: sphere
-  #       scale: '1'
-  #       Block_To_Insert:
-  #         gazebo/xyz=1 1 1:
-  #           a: 1
+#   # for:
+#   #   iterator: i
+#   #   range: 3
+#   #   body:
+#   # for:
+#   #   iterator: i
+#   #   range: 1
+#   #   body:
+#   #     gazebo/name=part$(i):
+#   #       a: 1
+#   #     MakePart:
+#   #       name: part$(i)
+#   #       type: fixed
+#   #       parent: root_link
+#   #       xyz: '$(i) $(i) $(i)'
+#   #       rpy: '$(i) $(i) $(i)'
+#   #       geometry: sphere
+#   #       scale: '1'
+#   #       Block_To_Insert:
+#   #         gazebo/xyz=1 1 1:
+#   #           a: 1

@@ -2,12 +2,11 @@ robot: robot
 
 variables:
   my_list:
-    - a
-    - b
-    - c
+    - arm_left
+    - arm_right
 
 functions:
-  CreateArm:
+  CreateArm/local:
     input: name, length=1.0
     body:
       part:
@@ -15,9 +14,11 @@ functions:
         joint:
           type: revolute
           parent: base_link
-          xyz: '0 0 0'
-          rpy: '0 0 0'
+          xyz: 0 0 0
+          rpy: 0 0 0
         link:
+          xyz: 0 0 0
+          rpy: 0 0 0
           geometry: box
           scale: $(length) 0.1 0.1
           mass: 0.5
@@ -25,9 +26,9 @@ functions:
           visual:
 
 model:
-  CreateArm: 
+  CreateArm:
     name: arm_left
     length: 1.2
-  CreateArm: 
+  CreateArm:
     name: arm_right
   print: $(my_list)

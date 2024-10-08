@@ -6,11 +6,11 @@ model:
     joint:
       type: fixed
       parent: root_link
-      xyz: '0 0 0'
-      rpy: '0 0 0'
+      xyz: 0 0 0
+      rpy: 0 0 0
     link:
       geometry: box
-      scale: '1 1 1'
+      scale: 1 1 1
       mass: 1.0
       collision:
       visual:
@@ -23,7 +23,7 @@ model:
       rpy: '0 0 0'
     link:
       geometry: box
-      scale: '0.5 0.5 1.0'
+      scale: 0.5 0.5 1.0
       mass: 0.5
       collision:
       visual:

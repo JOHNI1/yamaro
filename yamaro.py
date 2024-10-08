@@ -11,6 +11,8 @@ urdf_output = '<?xml version="1.0" ?>\n'
 spaces = 0
 tab = 2
 
+
+
 def tab_():
     global spaces
     spaces += tab
@@ -258,42 +260,48 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
     # Process variables and functions in the current file
     # print(file_data)
-    if 'variables' in file_data.keys():
-        for key, value in file_data['variables'][-1] if file_data['variables'][-1] is not None else []:
-            tag = key.split('/')
-            name = process(tag[0])
-            scope = process(tag[1] if len(tag) == 2 else 'local')
-            if scope not in 'local parent child global'.split():
-                raise ValueError(f"The scope of variable '{name}' is wrong! 'local parent child global' are allowed")
-            if name in properties['default']['variables'].keys():
-                if properties['default']['variables'][name]['scope'] != 'arg':
+    for position, define_key in enumerate(file_data.keys()):
+        if 'variables' == define_key:
+            for key, value in file_data[position][1] if file_data[position][1] is not None else []:
+                tag = key.split('/')
+                name = process(tag[0])
+                scope = process(tag[1] if len(tag) == 2 else 'local')
+                if scope not in 'local parent child global'.split():
+                    raise ValueError(f"The scope of variable '{name}' is wrong! 'local parent child global' are allowed")
+                if name in properties['default']['variables'].keys():
+                    if properties['default']['variables'][name]['scope'] != 'arg':
+                        raise ValueError(f"The variable '{name}' is already defined!")
+                if (temp['default']['variables'][name]['scope'] in 'child parent' and scope in 'parent global') if name in temp['default']['variables'].keys() else False:
                     raise ValueError(f"The variable '{name}' is already defined!")
-            if (temp['default']['variables'][name]['scope'] in 'child parent' and scope in 'parent global') if name in temp['default']['variables'].keys() else False:
-                raise ValueError(f"The variable '{name}' is already defined!")
-            if '.' in key:
-                raise ValueError(f"The variable '{name}' cannot contain dots.")
-            if name in properties['default']['variables'].keys():
-                if properties['default']['variables'][name]['scope'] != 'arg':
+                if '.' in key:
+                    raise ValueError(f"The variable '{name}' cannot contain dots.")
+                if name in properties['default']['variables'].keys():
+                    if properties['default']['variables'][name]['scope'] != 'arg':
+                        properties['default']['variables'][name] = {'value': process(value), 'scope': scope}
+                else:
                     properties['default']['variables'][name] = {'value': process(value), 'scope': scope}
-            else:
-                properties['default']['variables'][name] = {'value': process(value), 'scope': scope}
 
-    if 'functions' in file_data.keys():
-        for key, value in file_data['functions'][-1] if file_data['functions'][-1] is not None else []:
-            tag = key.split('/')
-            name = process(tag[0])
-            scope = process(tag[1] if len(tag) == 2 else 'local')
-            if scope not in 'local parent child global'.split():
-                raise ValueError(f"The scope of function '{name}' is wrong! 'local parent child global' are allowed")
-            if name in properties['default']['functions'].keys():
-                raise ValueError(f"The function '{name}' is already defined!")
-            if (temp['default']['functions'][name]['scope'] in 'child parent' and scope in 'parent global') if name in temp['default']['functions'].keys() else False:
-                raise ValueError(f"The function '{name}' is already defined!")
-            if '.' in key:
-                raise ValueError(f"The function '{name}' cannot contain dots.")
-            if not name[0].isupper():
-                raise ValueError(f"The function '{name}' must start with a capital letter!")
-            properties['default']['functions'][process(name)] = {'value': value, 'scope': scope}
+        elif 'functions' == define_key:
+            for key, value in file_data[position][1] if file_data[position][1] is not None else []:
+                tag = key.split('/')
+                name = process(tag[0])
+                scope = process(tag[1] if len(tag) == 2 else 'local')
+                if scope not in 'local parent child global'.split():
+                    raise ValueError(f"The scope of function '{name}' is wrong! 'local parent child global' are allowed")
+                if name in properties['default']['functions'].keys():
+                    raise ValueError(f"The function '{name}' is already defined!")
+                if (temp['default']['functions'][name]['scope'] in 'child parent' and scope in 'parent global') if name in temp['default']['functions'].keys() else False:
+                    raise ValueError(f"The function '{name}' is already defined!")
+                if '.' in key:
+                    raise ValueError(f"The function '{name}' cannot contain dots.")
+                if not name[0].isupper():
+                    raise ValueError(f"The function '{name}' must start with a capital letter!")
+                properties['default']['functions'][process(name)] = {'value': value, 'scope': scope}
+
+        elif 'import' ==  define_key:
+            for value in file_data[position][1] if file_data[position][1] is not None else []:
+                lib = process(value)
+                process(f'$(import {lib})')
 
 
 
@@ -459,7 +467,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                 ele_att = item[0].split('/')
                 att = {}
                 if len(ele_att) > 1:
-                    if ele_att[1] is not '':
+                    if ele_att[1] != '':
                         attributes = ele_att[1].split(',')
                         for attribute in attributes:
                             attribute = attribute.lstrip()
