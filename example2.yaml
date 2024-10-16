@@ -1,12 +1,19 @@
 robot: simple_robot
 
+import:
+  - math
+
+variables:
+  pi: $(math.pi)
+  right_angle: $(pi/2)
+
 model:
   part:
-    name: base_link
+    name: base
     joint:
       type: fixed
       parent: root_link
-      xyz: 0 0 0
+      xyz: 0 0 0.5
       rpy: 0 0 0
     link:
       geometry: box
@@ -14,16 +21,26 @@ model:
       mass: 1.0
       collision:
       visual:
+      inertial:
   part:
-    name: arm_link
+    name: arm
     joint:
       type: revolute
       parent: base_link
-      xyz: '0 0 1'
-      rpy: '0 0 0'
+      xyz: 0 0.5 0
+      rpy: 0 0 0
+      axis/xyz='1 0 0':
+      limit/lower='-1.57', upper='1.57', effort='1', velocity='10.0':
+      dynamics/damping='10', friction='0.0':
+      gazebo:
+        springStiffness: 500
+        springReference: 0
     link:
-      geometry: box
-      scale: 0.5 0.5 1.0
-      mass: 0.5
+      geometry: cylinder
+      scale: 0.04 1.0
+      mass: 1
+      xyz: 0 0 -0.5
+      rpy: $(right_angle) 0 0
       collision:
       visual:
+      inertial:

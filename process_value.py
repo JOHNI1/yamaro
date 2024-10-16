@@ -127,17 +127,24 @@ def process_value(value, properties, local_key_list) -> str:
         except Exception as e:
             raise RuntimeError(f"Error evaluating expression '{expr_with_vars}': {e}")
 
-        # After execution, update properties with new variables
+        # After execution, update properties with new or existing variables
         if is_assignment:
-            new_vars = set(eval_globals.keys()) - set(old_eval_globals.keys())
-            for var_name in new_vars:
+            for var_name in eval_globals.keys():
+                if var_name in old_eval_globals and old_eval_globals[var_name] == eval_globals[var_name]:
+                    continue  # Skip if the value hasn't changed
                 var_value = eval_globals[var_name]
                 # Convert var_value back to string for storage
                 var_value_str = repr(var_value)
-                properties['default']['variables'][var_name] = {'value': var_value_str, 'scope': 'local'}
+                if var_name in properties['default']['variables']:
+                    # Update existing variable
+                    properties['default']['variables'][var_name]['value'] = var_value_str
+                else:
+                    # Add new variable
+                    properties['default']['variables'][var_name] = {'value': var_value_str, 'scope': 'local'}
                 # Add the variable name to the local_key_list
                 if var_name not in local_key_list:
                     local_key_list.append(var_name)
+
 
         result += str(evaluated)
         last_idx = end
@@ -145,10 +152,6 @@ def process_value(value, properties, local_key_list) -> str:
     result += value[last_idx:]
     return result
 
-
-
-# def AA():
-#     return 'hello world'
 
 
 if __name__ == "__main__":
@@ -165,18 +168,24 @@ if __name__ == "__main__":
             }
         }
     }
-    current_local_key_list = []
+    process(f'$(a=0)')
+    print(current_properties)
+    process(f'$(a=1)')
+    print(current_properties)
 
-    process(f'$(a="drone")')
+    
+    # current_local_key_list = []
 
-    print(process(f'$(AA())'))
+    # process(f'$(a="drone")')
 
-    print(process(f'$(get_package_share_directory(a))'))
-    print(process(f'$(math.pi)'))
-    # print(process('using dict format: $(t = {"a": 1, "b": 2, "c": 3})'))
-    w = str(process('$(dict(a=1, b=2, c=3))'))
-    print(process(f"$(t = {w})"))
+    # print(process(f'$(AA())'))
 
-    # print(process('using dict format: $(t = dict(a=1, b=2, c=3))'))
-    print(process('t["b"] = $(t["b"])'))
-    print(process(f'$(x+y)'))
+    # print(process(f'$(get_package_share_directory(a))'))
+    # print(process(f'$(math.pi)'))
+    # # print(process('using dict format: $(t = {"a": 1, "b": 2, "c": 3})'))
+    # w = str(process('$(dict(a=1, b=2, c=3))'))
+    # print(process(f"$(t = {w})"))
+
+    # # print(process('using dict format: $(t = dict(a=1, b=2, c=3))'))
+    # print(process('t["b"] = $(t["b"])'))
+    # print(process(f'$(x+y)'))

@@ -6,6 +6,7 @@ import process_value
 from pretty_print_dict import pretty_print_dict
 import copy
 import re
+import numpy as np
 
 urdf_output = '<?xml version="1.0" ?>\n'
 spaces = 0
@@ -47,6 +48,36 @@ def xml(element, attributes={}, body=[], *args, **kwargs):
         add_line_to_urdf('<{element}{argument}/>'.format(element=element, argument=argument))
         
 
+def rotate_vector(vector, rotation_vector):
+
+    if ([(float(vector[i])) for i in range(3)] if isinstance(vector[0], str) else vector) == [0, 0, 0]:
+        return [0, 0, 0]
+    # Create rotation matrices for roll, pitch, and yaw
+    Rx = np.array([
+        [1, 0, 0],
+        [0, np.cos(float(rotation_vector[0])), -np.sin(float(rotation_vector[0]))],
+        [0, np.sin(float(rotation_vector[0])), np.cos(float(rotation_vector[0]))]
+    ])
+    
+    Ry = np.array([
+        [np.cos(float(rotation_vector[1])), 0, np.sin(float(rotation_vector[1]))],
+        [0, 1, 0],
+        [-np.sin(float(rotation_vector[1])), 0, np.cos(float(rotation_vector[1]))]
+    ])
+    
+    Rz = np.array([
+        [np.cos(float(rotation_vector[2])), -np.sin(float(rotation_vector[2])), 0],
+        [np.sin(float(rotation_vector[2])), np.cos(float(rotation_vector[2])), 0],
+        [0, 0, 1]
+    ])
+    
+    # Combined rotation matrix
+    R = Rz @ Ry @ Rx
+    
+    # Rotate the vector
+    rotated_vector = R @ np.array([float(value) for value in vector])
+    
+    return rotated_vector
 
 def part_process(item, local_key_list, process_level):
 
@@ -64,7 +95,7 @@ def part_process(item, local_key_list, process_level):
         else:
             raise ValueError(f'In part, first define name, then joint and then link!')
 
-        vars = dict(type='type', parent=None, xyz='0 0 0', rpy='0 0 0')
+        vars = dict(type='type', parent=None, xyz='0 0 0', rpy='0 0 0', pivot='0 0 0')
 
         j = []
 
@@ -83,8 +114,12 @@ def part_process(item, local_key_list, process_level):
             else:
                 j_extras.add(key, item_[1])
                 
-
-        origin = {'xyz': vars['xyz'], 'rpy': vars['rpy']}
+        final_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
+        vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - final_xyz[i]) for i in range(3))
+        origin = {
+            'xyz': vars['xyz'],
+            'rpy': vars['rpy']
+        }
         child = {'link': name[1]}
         parent = {'link': vars['parent']}
 
@@ -111,20 +146,19 @@ def part_process(item, local_key_list, process_level):
         else:
             raise ValueError(f'In part first define name, then joint and then link!')
 
-        vars = dict(geometry=None, scale=None, mass=None, xyz='0 0 0', rpy='0 0 0')
+        vars = dict(geometry=None, scale=None, mass=None, xyz='0 0 0', rpy='0 0 0', pivot='0 0 0')
 
         l = []
         l_extras = FlexiDict()
         l_comp_list = []
+        
         for index, item_ in enumerate(link):
             key = process(item_[0])
             l_comp_extras = FlexiDict()
 
             l_comp_list.append([])
 
-            # if key in vars.keys():
-            #     value = process(item_[1])
-            #     vars[key] = value if value is not None else vars[key]
+
             if key in vars.keys():
                 value = process(item_[1])
                 if isinstance(value, str):
@@ -133,17 +167,15 @@ def part_process(item, local_key_list, process_level):
 
             elif key in 'visual inertial collision'.split():
                 sub_vars = copy.deepcopy(vars)
+                sub_vars['xyz'] = '0 0 0'
+                sub_vars['pivot'] = '0 0 0' #reset pivot
+                sub_vars['rpy'] = '0 0 0'
                 if key == 'inertial':
                     for sub_item in item_[1] if item_[1] is not None else [['']]:
                         sub_key = process(sub_item[0])
-                        if sub_key in 'xyz rpy'.split() and not sub_key == '':
-                            sub_vars[sub_key] = ''.join(
-                                str(float(split_(sub_vars[sub_key])[i]) + float(split_(process(sub_item[1]))[i]))
-                                for i in range(3)
-                            )
-                        elif sub_key in 'geometry scale inertia mass'.split() and not sub_key == '':
+                        if sub_key in sub_vars.keys() and not sub_key == '':
                             sub_value = process(sub_item[1])
-                            sub_vars[sub_key] = sub_value if sub_value is not None else vars[key]
+                            sub_vars[sub_key] = sub_value if sub_value is not None else sub_vars[sub_key]
                         elif not sub_key == '':
                             l_comp_extras.add(sub_key, sub_item[1])
                             
@@ -159,6 +191,14 @@ def part_process(item, local_key_list, process_level):
                             sub_vars['inertia'] = f"{float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)} 0 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)}"
 
                     l_comp_list[index].append(lambda sub_vars=sub_vars: xml('mass', attributes=dict(value=sub_vars['mass'])))
+
+
+                    transformed_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
+                    sub_sub_transformed_xyz = rotate_vector(split_(sub_vars['pivot']), split_(sub_vars['rpy']))
+                    sub_transformed_xyz = rotate_vector([(float(split_(sub_vars['xyz'])[i]) - sub_sub_transformed_xyz[i]) for i in range(3)], split_(vars['rpy']))
+
+                    sub_vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - transformed_xyz[i] + sub_transformed_xyz[i]) for i in range(3))
+                    sub_vars['rpy'] = ' '.join(str(float(split_(sub_vars['rpy'])[i]) + float(split_(vars['rpy'])[i])) for i in range(3))
                     l_comp_list[index].append(lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy'])))
                     inertia_values = split_(sub_vars['inertia'])
                     l_comp_list[index].append(
@@ -180,17 +220,13 @@ def part_process(item, local_key_list, process_level):
                 elif key in 'collision visual'.split():
                     for sub_item in item_[1] if item_[1] is not None else [['']]:
                         sub_key = process(sub_item[0])
-                        if sub_key in 'xyz rpy'.split() and not sub_key == '':
-                            sub_vars[sub_key] = ''.join(
-                                str(float(split_(sub_vars[sub_key])[i]) + float(split_(process(sub_item[1]))[i]))
-                                for i in range(3)
-                            )
-                        elif sub_key in 'geometry scale'.split() and not sub_key == '':
+                        if sub_key in sub_vars.keys() and not sub_key == '':
                             sub_value = process(sub_item[1])
-                            sub_vars[sub_key] = sub_value if sub_value is not None else vars[key]
+                            sub_vars[sub_key] = sub_value if sub_value is not None else sub_vars[sub_key]
                         elif not sub_key == '':
                             l_comp_extras.add(sub_key, sub_item[1])
-
+                            
+                            
                     if sub_vars['geometry'].lower() == 'box':
                         l_comp_list[index].append(
                             lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('box', attributes=dict(size=sub_vars['scale']))])
@@ -212,6 +248,14 @@ def part_process(item, local_key_list, process_level):
                             lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('mesh', attributes=dict(filename=sub_vars['geometry'], scale=sub_vars['scale']))])
                         )
 
+
+
+                    transformed_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
+                    sub_sub_transformed_xyz = rotate_vector(split_(sub_vars['pivot']), split_(sub_vars['rpy']))
+                    sub_transformed_xyz = rotate_vector([(float(split_(sub_vars['xyz'])[i]) - sub_sub_transformed_xyz[i]) for i in range(3)], split_(vars['rpy']))
+
+                    sub_vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - transformed_xyz[i] + sub_transformed_xyz[i]) for i in range(3))
+                    sub_vars['rpy'] = ' '.join(str(float(split_(sub_vars['rpy'])[i]) + float(split_(vars['rpy'])[i])) for i in range(3))
 
                     l_comp_list[index].append(
                         lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy']))
@@ -382,7 +426,6 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                     iterator = process(item[1]['iterator'][0])
                     range_ = split_(process(str(item[1]['range'][0])))
 
-                    process(f'$({iterator} = 0)')
 
                     if len(range_) == 1:
                         range_.append(range_[0])
@@ -390,10 +433,10 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                         range_.append(1)
                     elif len(range_) == 2:
                         range_.append(1)
-                    
 
                     for t in range(int(range_[0]), int(range_[1]), int(range_[2])):
                         process(f'$({iterator} = {t})')
+                        # print(pretty_print_dict(properties))
                         process_level(item[1]['body'][-1], local_key_list)
                 except Exception as e:
                     raise Exception(f"Error processing for loop. {e}")

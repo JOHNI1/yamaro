@@ -49,6 +49,7 @@ functions:
           parent: $(parent)
           xyz: $(xyz)
           rpy: $(rpy)
+          pivot: 
           Block_To_Insert:
         link:
           geometry: $(geometry)
