@@ -1,44 +1,60 @@
-
-
 robot: drone
 
 import: 
   - math
   - ament_index_python.packages
 
-
 variables:
-
   pi: $(math.pi)
   right: $(pi/2)
-
-functions:
-               
-
-
+  arm_length: 0.8
+  arm_radius: 0.015
+  base_link_radius: 0.25
+  base_link_hight: 0.08
 
 model:
-  process: print_properties()
-  process: import numpy
-
+  # process: print_properties()
+  part:
+    name: base
+    joint:
+      type: fixed
+      parent: root_link
+    link:
+      geometry: cylinder
+      scale: $(base_link_radius) $(base_link_hight)
+      pivot: 0 0 -0.04
+      rpy: 0 0 0
+      mass: 10
+      visual:
+      inertial:
+      collision:
   for:
     iterator: i
-    range: 6
+    range: 1
     body:
       part:
         name: arm_$(i)
         joint:
-          type: fixed
-          parent: root_link
-          pivot: -1 0 0
-          rpy: $(i*2*pi/6) 0 0
+          type: revolute
+          parent: base_link
+          xyz: 0 0 $(base_link_hight/2)
+          pivot: $(-base_link_radius) 0 0
+          rpy: 0 0 $(i*2*pi/6)
+          axis/xyz='0 1 0':
+          limit/effort="1", lower='$(-1*right)', upper='$(right)', velocity='10':
+          dynamics/damping="10", friction="0":
+        gazebo/reference="arm_$(i)_joint":
+          springStiffness: 500
+          springReference: 0
+
         link:
           geometry: cylinder
-          scale: 0.03 1
-          pivot: 0 0 -0.5
-          rpy: $(30*pi/180) 0 0
-          mass: 1
+          scale: $(arm_radius) $(arm_length)
+          pivot: 0 0 $(-arm_length/2)
+          rpy: 0 $(right-(10*pi/180)) 0
+          mass: 0.05
           collision:
           visual:
           inertial:
+
 

@@ -82,197 +82,203 @@ def rotate_vector(vector, rotation_vector):
 def part_process(item, local_key_list, process_level):
 
     try:
-        if process(item[0][0]) == 'name':
-            name = split_(process(item[0][1]))
-            if len(name) == 1:
-                name.append(f'{name[0]}_link')
-                name[0] = f'{name[0]}_joint'
-        else:
-            raise ValueError(f'In part, first define name, then joint and then link!')
-
-        if process(item[1][0]) == 'joint':
-            joint = item[1][1]
-        else:
-            raise ValueError(f'In part, first define name, then joint and then link!')
-
-        vars = dict(type='type', parent=None, xyz='0 0 0', rpy='0 0 0', pivot='0 0 0')
-
-        j = []
-
-        j_extras = FlexiDict()
-
-        for item_ in joint:
-            key = process(item_[0])
-            # if key in vars.keys():
-            #     value = process(item_[1])
-            #     vars[key] = value if value is not None else vars[key]
-            if key in list(vars.keys()):
-                value = process(item_[1])
-                if isinstance(value, str):
-                    value = value.strip('\'"')
-                vars[key] = value if value is not None else vars[key]
-            else:
-                j_extras.add(key, item_[1])
-                
-        final_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
-        vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - final_xyz[i]) for i in range(3))
-        origin = {
-            'xyz': vars['xyz'],
-            'rpy': vars['rpy']
-        }
-        child = {'link': name[1]}
-        parent = {'link': vars['parent']}
-
-        default_joint_setup = [
-            lambda origin=origin: xml('origin', origin),
-            lambda child=child: xml('child', child),
-            lambda parent=parent: xml('parent', parent),
-        ]
-
-        for i in range(len(default_joint_setup)):
-            j.insert(i, default_joint_setup[i])
-
-        j.append(lambda j_extras=j_extras: process_level(j_extras, local_key_list))
-
-        xml('joint', {'name': name[0], 'type': vars['type']}, j)
-
-
-
-
-
-
-        if process(item[2][0]) == 'link':
-            link = item[2][1]
-        else:
-            raise ValueError(f'In part first define name, then joint and then link!')
-
-        vars = dict(geometry=None, scale=None, mass=None, xyz='0 0 0', rpy='0 0 0', pivot='0 0 0')
-
-        l = []
-        l_extras = FlexiDict()
-        l_comp_list = []
+        my_item = copy.deepcopy(item)
+        # for ind in range(len(my_item.keys())):
+        #     my_item[ind][0] = process(my_item[ind][0])
         
-        for index, item_ in enumerate(link):
-            key = process(item_[0])
-            l_comp_extras = FlexiDict()
+        if ['name', 'joint', 'link'] != [ele for ele in my_item.keys() if ele in ['name', 'joint', 'link']]:
+            raise ValueError(f'In part, define name, then joint and then link!')
+        part_extras = FlexiDict()
+        for the_index, the_key in enumerate(my_item.keys()):
+            
+            if the_key == 'name':
+                name = split_(process(my_item[the_index][1]))
+                if len(name) == 1:
+                    name.append(f'{name[0]}_link')
+                    name[0] = f'{name[0]}_joint'
+                    
+            elif the_key == 'joint':
+                joint = my_item[the_index][1]
+                    
+                vars = dict(type='type', parent=None, xyz='0 0 0', rpy='0 0 0', pivot='0 0 0')
 
-            l_comp_list.append([])
+                j = []
 
+                j_extras = FlexiDict()
 
-            if key in vars.keys():
-                value = process(item_[1])
-                if isinstance(value, str):
-                    value = value.strip('\'"')
-                vars[key] = value if value is not None else vars[key]
-
-            elif key in 'visual inertial collision'.split():
-                sub_vars = copy.deepcopy(vars)
-                sub_vars['xyz'] = '0 0 0'
-                sub_vars['pivot'] = '0 0 0' #reset pivot
-                sub_vars['rpy'] = '0 0 0'
-                if key == 'inertial':
-                    for sub_item in item_[1] if item_[1] is not None else [['']]:
-                        sub_key = process(sub_item[0])
-                        if sub_key in sub_vars.keys() and not sub_key == '':
-                            sub_value = process(sub_item[1])
-                            sub_vars[sub_key] = sub_value if sub_value is not None else sub_vars[sub_key]
-                        elif not sub_key == '':
-                            l_comp_extras.add(sub_key, sub_item[1])
-                            
-
-                    if 'inertia' not in sub_vars.keys():
-                        if sub_vars['geometry'].lower() == 'box':
-                            sub_vars['inertia'] = f"{float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[1]), 2) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12}"
-                        elif sub_vars['geometry'].lower() == 'cylinder':
-                            sub_vars['inertia'] = f"{float(sub_vars['mass']) * (3 * pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (3 * pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) / 2}"
-                        elif sub_vars['geometry'].lower() == 'tube':
-                            sub_vars['inertia'] = f"{float(sub_vars['mass']) * (3 * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (3 * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 2}"
-                        elif sub_vars['geometry'].lower() == 'sphere':
-                            sub_vars['inertia'] = f"{float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)} 0 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)}"
-
-                    l_comp_list[index].append(lambda sub_vars=sub_vars: xml('mass', attributes=dict(value=sub_vars['mass'])))
-
-
-                    transformed_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
-                    sub_sub_transformed_xyz = rotate_vector(split_(sub_vars['pivot']), split_(sub_vars['rpy']))
-                    sub_transformed_xyz = rotate_vector([(float(split_(sub_vars['xyz'])[i]) - sub_sub_transformed_xyz[i]) for i in range(3)], split_(vars['rpy']))
-
-                    sub_vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - transformed_xyz[i] + sub_transformed_xyz[i]) for i in range(3))
-                    sub_vars['rpy'] = ' '.join(str(float(split_(sub_vars['rpy'])[i]) + float(split_(vars['rpy'])[i])) for i in range(3))
-                    l_comp_list[index].append(lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy'])))
-                    inertia_values = split_(sub_vars['inertia'])
-                    l_comp_list[index].append(
-                        lambda inertia_values=inertia_values: xml(
-                            'inertia',
-                            attributes=dict(
-                                ixx=inertia_values[0],
-                                ixy=inertia_values[1],
-                                ixz=inertia_values[2],
-                                iyy=inertia_values[3],
-                                iyz=inertia_values[4],
-                                izz=inertia_values[5],
-                            ),
-                        )
-                    )
-                    l_comp_list[index].append(lambda l_comp_extras=l_comp_extras: process_level(l_comp_extras, local_key_list))
-                    l.append(lambda key=key, body=l_comp_list[index]: xml(key, body=body))
-
-                elif key in 'collision visual'.split():
-                    for sub_item in item_[1] if item_[1] is not None else [['']]:
-                        sub_key = process(sub_item[0])
-                        if sub_key in sub_vars.keys() and not sub_key == '':
-                            sub_value = process(sub_item[1])
-                            sub_vars[sub_key] = sub_value if sub_value is not None else sub_vars[sub_key]
-                        elif not sub_key == '':
-                            l_comp_extras.add(sub_key, sub_item[1])
-                            
-                            
-                    if sub_vars['geometry'].lower() == 'box':
-                        l_comp_list[index].append(
-                            lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('box', attributes=dict(size=sub_vars['scale']))])
-                        )
-                    elif sub_vars['geometry'].lower() == 'cylinder':
-                        radius, length = float(split_(sub_vars['scale'])[0]), float(split_(sub_vars['scale'])[1])
-                        l_comp_list[index].append(
-                            lambda radius=radius, length=length: xml(
-                                'geometry', body=[lambda: xml('cylinder', attributes=dict(radius=radius, length=length))]
-                            )
-                        )
-                    elif sub_vars['geometry'].lower() == 'sphere':
-                        radius = float(split_(sub_vars['scale'])[0])
-                        l_comp_list[index].append(
-                            lambda radius=radius: xml('geometry', body=[lambda: xml('sphere', attributes=dict(radius=radius))])
-                        )
+                for item_ in joint:
+                    key = process(item_[0])
+                    # if key in vars.keys():
+                    #     value = process(item_[1])
+                    #     vars[key] = value if value is not None else vars[key]
+                    if key in list(vars.keys()):
+                        value = process(item_[1])
+                        if isinstance(value, str):
+                            value = value.strip('\'"')
+                        vars[key] = value if value is not None else vars[key]
                     else:
-                        l_comp_list[index].append(
-                            lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('mesh', attributes=dict(filename=sub_vars['geometry'], scale=sub_vars['scale']))])
-                        )
+                        j_extras.add(key, item_[1])
+                        
+                final_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
+                vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - final_xyz[i]) for i in range(3))
+                origin = {
+                    'xyz': vars['xyz'],
+                    'rpy': vars['rpy']
+                }
+                child = {'link': name[1]}
+                parent = {'link': vars['parent']}
+
+                default_joint_setup = [
+                    lambda origin=origin: xml('origin', origin),
+                    lambda child=child: xml('child', child),
+                    lambda parent=parent: xml('parent', parent),
+                ]
+
+                for i in range(len(default_joint_setup)):
+                    j.insert(i, default_joint_setup[i])
+
+                j.append(lambda j_extras=j_extras: process_level(j_extras, local_key_list))
+
+                xml('joint', {'name': name[0], 'type': vars['type']}, j)
 
 
 
-                    transformed_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
-                    sub_sub_transformed_xyz = rotate_vector(split_(sub_vars['pivot']), split_(sub_vars['rpy']))
-                    sub_transformed_xyz = rotate_vector([(float(split_(sub_vars['xyz'])[i]) - sub_sub_transformed_xyz[i]) for i in range(3)], split_(vars['rpy']))
-
-                    sub_vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - transformed_xyz[i] + sub_transformed_xyz[i]) for i in range(3))
-                    sub_vars['rpy'] = ' '.join(str(float(split_(sub_vars['rpy'])[i]) + float(split_(vars['rpy'])[i])) for i in range(3))
-
-                    l_comp_list[index].append(
-                        lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy']))
-                    )
-
-                    l_comp_list[index].append(lambda l_comp_extras=l_comp_extras: process_level(l_comp_extras, local_key_list))
-                    l.append(lambda key=key, body=l_comp_list[index]: xml(key, body=body))
-            else:
-                l_extras.add(key, item_[1])
 
 
+
+            elif my_item[the_index][0] == 'link':
+                link = my_item[the_index][1]
+                    
+                vars = dict(geometry=None, scale=None, mass=None, xyz='0 0 0', rpy='0 0 0', pivot='0 0 0')
+
+                l = []
+                l_extras = FlexiDict()
+                l_comp_list = []
+                
+                for index, item_ in enumerate(link):
+                    key = process(item_[0])
+                    l_comp_extras = FlexiDict()
+
+                    l_comp_list.append([])
+
+
+                    if key in vars.keys():
+                        value = process(item_[1])
+                        if isinstance(value, str):
+                            value = value.strip('\'"')
+                        vars[key] = value if value is not None else vars[key]
+
+                    elif key in 'visual inertial collision'.split():
+                        sub_vars = copy.deepcopy(vars)
+                        sub_vars['xyz'] = '0 0 0'
+                        sub_vars['pivot'] = '0 0 0' #reset pivot
+                        sub_vars['rpy'] = '0 0 0'
+                        if key == 'inertial':
+                            for sub_item in item_[1] if item_[1] is not None else [['']]:
+                                sub_key = process(sub_item[0])
+                                if sub_key in sub_vars.keys() and not sub_key == '':
+                                    sub_value = process(sub_item[1])
+                                    sub_vars[sub_key] = sub_value if sub_value is not None else sub_vars[sub_key]
+                                elif not sub_key == '':
+                                    l_comp_extras.add(sub_key, sub_item[1])
+                                    
+
+                            if 'inertia' not in sub_vars.keys():
+                                if sub_vars['geometry'].lower() == 'box':
+                                    sub_vars['inertia'] = f"{float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[1]), 2) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12}"
+                                elif sub_vars['geometry'].lower() == 'cylinder':
+                                    sub_vars['inertia'] = f"{float(sub_vars['mass']) * (3 * pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (3 * pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) / 2}"
+                                elif sub_vars['geometry'].lower() == 'tube':
+                                    sub_vars['inertia'] = f"{float(sub_vars['mass']) * (3 * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (3 * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 2}"
+                                elif sub_vars['geometry'].lower() == 'sphere':
+                                    sub_vars['inertia'] = f"{float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)} 0 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)}"
+
+                            l_comp_list[index].append(lambda sub_vars=sub_vars: xml('mass', attributes=dict(value=sub_vars['mass'])))
+
+
+                            transformed_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
+                            sub_sub_transformed_xyz = rotate_vector(split_(sub_vars['pivot']), split_(sub_vars['rpy']))
+                            sub_transformed_xyz = rotate_vector([(float(split_(sub_vars['xyz'])[i]) - sub_sub_transformed_xyz[i]) for i in range(3)], split_(vars['rpy']))
+
+                            sub_vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - transformed_xyz[i] + sub_transformed_xyz[i]) for i in range(3))
+                            sub_vars['rpy'] = ' '.join(str(float(split_(sub_vars['rpy'])[i]) + float(split_(vars['rpy'])[i])) for i in range(3))
+                            l_comp_list[index].append(lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy'])))
+                            inertia_values = split_(sub_vars['inertia'])
+                            l_comp_list[index].append(
+                                lambda inertia_values=inertia_values: xml(
+                                    'inertia',
+                                    attributes=dict(
+                                        ixx=inertia_values[0],
+                                        ixy=inertia_values[1],
+                                        ixz=inertia_values[2],
+                                        iyy=inertia_values[3],
+                                        iyz=inertia_values[4],
+                                        izz=inertia_values[5],
+                                    ),
+                                )
+                            )
+                            l_comp_list[index].append(lambda l_comp_extras=l_comp_extras: process_level(l_comp_extras, local_key_list))
+                            l.append(lambda key=key, body=l_comp_list[index]: xml(key, body=body))
+
+                        elif key in 'collision visual'.split():
+                            for sub_item in item_[1] if item_[1] is not None else [['']]:
+                                sub_key = process(sub_item[0])
+                                if sub_key in sub_vars.keys() and not sub_key == '':
+                                    sub_value = process(sub_item[1])
+                                    sub_vars[sub_key] = sub_value if sub_value is not None else sub_vars[sub_key]
+                                elif not sub_key == '':
+                                    l_comp_extras.add(sub_key, sub_item[1])
+                                    
+                                    
+                            if sub_vars['geometry'].lower() == 'box':
+                                l_comp_list[index].append(
+                                    lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('box', attributes=dict(size=sub_vars['scale']))])
+                                )
+                            elif sub_vars['geometry'].lower() == 'cylinder':
+                                radius, length = float(split_(sub_vars['scale'])[0]), float(split_(sub_vars['scale'])[1])
+                                l_comp_list[index].append(
+                                    lambda radius=radius, length=length: xml(
+                                        'geometry', body=[lambda: xml('cylinder', attributes=dict(radius=radius, length=length))]
+                                    )
+                                )
+                            elif sub_vars['geometry'].lower() == 'sphere':
+                                radius = float(split_(sub_vars['scale'])[0])
+                                l_comp_list[index].append(
+                                    lambda radius=radius: xml('geometry', body=[lambda: xml('sphere', attributes=dict(radius=radius))])
+                                )
+                            else:
+                                l_comp_list[index].append(
+                                    lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('mesh', attributes=dict(filename=sub_vars['geometry'], scale=sub_vars['scale']))])
+                                )
+
+
+
+                            transformed_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
+                            sub_sub_transformed_xyz = rotate_vector(split_(sub_vars['pivot']), split_(sub_vars['rpy']))
+                            sub_transformed_xyz = rotate_vector([(float(split_(sub_vars['xyz'])[i]) - sub_sub_transformed_xyz[i]) for i in range(3)], split_(vars['rpy']))
+
+                            sub_vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - transformed_xyz[i] + sub_transformed_xyz[i]) for i in range(3))
+                            sub_vars['rpy'] = ' '.join(str(float(split_(sub_vars['rpy'])[i]) + float(split_(vars['rpy'])[i])) for i in range(3))
+
+                            l_comp_list[index].append(
+                                lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy']))
+                            )
+
+                            l_comp_list[index].append(lambda l_comp_extras=l_comp_extras: process_level(l_comp_extras, local_key_list))
+                            l.append(lambda key=key, body=l_comp_list[index]: xml(key, body=body))
+                    else:
+                        l_extras.add(key, item_[1])
         
-        l.append(lambda l_extras=l_extras: process_level(l_extras, local_key_list))
+                l.append(lambda l_extras=l_extras: process_level(l_extras, local_key_list))
+                xml('link', {'name': name[1]}, l)
+
+            else:
+                part_extras.add(the_key, my_item[the_index][1])
+            
+        process_level(part_extras, local_key_list)
+            
 
 
-
-        xml('link', {'name': name[1]}, l)
 
     except Exception as e:
         raise Exception(f"Error processing part. {e}")
