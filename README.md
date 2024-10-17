@@ -43,6 +43,11 @@ Option 2: Virtual Environment Installation (Recommended)
   pip install .
 ```
 
+To uninstall:
+```bash
+  sudo python3 -m pip uninstall yamaro --break-system-packages
+```
+
 ---
 
 ## Usage
