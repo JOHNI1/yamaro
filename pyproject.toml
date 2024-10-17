@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"   # Using Setuptools as the build backen
 # Project metadata configuration
 [project]
 name = "yamaro_yonitakahashi"      # Package name (must be unique in PyPI)
-version = "0.1.0"                        # Package version using semantic versioning
+version = "0.1.1"                        # Package version using semantic versioning
 authors = [
   { name="Yoni Takahashi", email="takahashiyoni@gmail.com" }  # Your details as the author
 ]

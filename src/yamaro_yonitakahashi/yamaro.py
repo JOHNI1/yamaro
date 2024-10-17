@@ -617,11 +617,12 @@ RESET = "\033[0m"  # Reset color to default
 
 
 def main(yamaro_file, *args) -> str:
+    yamaro_file = os.path.expanduser(yamaro_file)
 
     properties = dict(default=dict(variables=dict(), functions=dict()))
 
     for idx, arg in enumerate(args):
-        print(f"Argument {idx}: {arg}")
+        # print(f"Argument {idx}: {arg}")
         name, value = arg.split(':=')
         process(f'$({name} = {value})')
         properties['default']['variables'][name] = {'value': eval(value), 'scope': 'arg'}
@@ -630,7 +631,7 @@ def main(yamaro_file, *args) -> str:
 
 
     if 'robot' in load_yaml_to_FlexiDict(yamaro_file).keys():
-        add_line_to_urdf(f'<robot name="{process(load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1]))['robot'][0])}">')
+        add_line_to_urdf(f'<robot name="{process(load_yaml_to_FlexiDict(yamaro_file)['robot'][0])}">')
     else:
         add_line_to_urdf(f'<robot name="default">')
     tab_()
@@ -640,7 +641,7 @@ def main(yamaro_file, *args) -> str:
     # print(load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1])))
 
     process_value.current_properties = properties
-    print(f'\n{BLUE}starting processing yaml to urdf!{RESET}\n')
+    # print(f'\n{BLUE}starting processing yaml to urdf!{RESET}\n')
 
     # process input arg so it allows passing variables! for now I will pass barebone properties
     process_yaml_to_urdf(yamaro_file, properties, [yamaro_file])
@@ -648,7 +649,7 @@ def main(yamaro_file, *args) -> str:
     add_line_to_urdf('</robot>')
 
 
-    print(f'\n\n{BLUE}output urdf:{RESET}\n{urdf_output}')
+    # print(f'\n\n{BLUE}output urdf:{RESET}\n{urdf_output}')
 
     return urdf_output
 
