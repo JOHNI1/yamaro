@@ -23,6 +23,40 @@ Yamaro is a YAML-based templating engine designed to generate URDF (Unified Robo
 
 ---
 
+## Installation
+
+Option 1: System-Wide Installation
+
+```bash
+  git clone https://github.com/JOHNI1/yamaro.git
+  cd yamaro
+  sudo python3 -m pip install . --break-system-packages
+```
+
+Option 2: Virtual Environment Installation (Recommended)
+
+```bash
+  git clone https://github.com/JOHNI1/yamaro.git
+  cd yamaro
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install .
+```
+
+---
+
+## Usage
+
+import yamaro
+
+```python
+  output = yamaro.convert('input.yaml')
+  with open('output.urdf', 'w') as f:
+      f.write(output)
+```
+
+---
+
 ## Syntax and Usage
 
 ### YAML Syntax in Yamaro
