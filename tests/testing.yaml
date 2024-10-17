@@ -11,6 +11,7 @@ variables:
   arm_radius: 0.015
   base_link_radius: 0.25
   base_link_hight: 0.08
+  arm_count: 6
 
 model:
   # process: print_properties()
@@ -30,7 +31,7 @@ model:
       collision:
   for:
     iterator: i
-    range: 1
+    range: $(arm_count)
     body:
       part:
         name: arm_$(i)
@@ -39,7 +40,7 @@ model:
           parent: base_link
           xyz: 0 0 $(base_link_hight/2)
           pivot: $(-base_link_radius) 0 0
-          rpy: 0 0 $(i*2*pi/6)
+          rpy: 0 0 $(i*2*pi/arm_count)
           axis/xyz='0 1 0':
           limit/effort="1", lower='$(-1*right)', upper='$(right)', velocity='10':
           dynamics/damping="10", friction="0":

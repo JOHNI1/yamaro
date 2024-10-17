@@ -1,9 +1,26 @@
+# my_module.py
+#
+# Copyright (C) 2024 Yoni Takahashi
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses
+
 import os
 import sys
-from flexidict import load_yaml_to_FlexiDict, FlexiDict
-from process_value import process
-import process_value
-from pretty_print_dict import pretty_print_dict
+from .flexidict import load_yaml_to_FlexiDict, FlexiDict
+from .process_value import process
+from . import process_value
+from .pretty_print_dict import pretty_print_dict
 import copy
 import re
 import numpy as np
@@ -11,6 +28,7 @@ import numpy as np
 urdf_output = '<?xml version="1.0" ?>\n'
 spaces = 0
 tab = 2
+
 
 
 
@@ -303,7 +321,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
     top_local_key_list = []
     process_value.current_local_key_list = top_local_key_list
-    file_data = load_yaml_to_FlexiDict(os.path.expanduser(file_name))
+    file_data = load_yaml_to_FlexiDict(file_name)
     # print(file_data)
 
     # print('before: ',properties, '\n')
@@ -596,35 +614,49 @@ RESET = "\033[0m"  # Reset color to default
 # print(f"{BLUE}This is blue text{RESET}")
 
 # Start with the first YAML file and a global variable store
-properties = dict(default=dict(variables=dict(), functions=dict()))
 
-for idx, arg in enumerate(sys.argv):
-    print(f"Argument {idx}: {arg}")
-    if idx > 1:
+
+def main(yamaro_file, *args) -> str:
+
+    properties = dict(default=dict(variables=dict(), functions=dict()))
+
+    for idx, arg in enumerate(args):
+        print(f"Argument {idx}: {arg}")
         name, value = arg.split(':=')
         process(f'$({name} = {value})')
         properties['default']['variables'][name] = {'value': eval(value), 'scope': 'arg'}
-        print(properties)
+        # print(properties)
 
 
 
-if 'robot' in load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1])).keys():
-    add_line_to_urdf(f'<robot name="{process(load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1]))['robot'][0])}">')
-else:
-    add_line_to_urdf(f'<robot name="default">')
-tab_()
-xml('link', {'name': 'root_link'})
+    if 'robot' in load_yaml_to_FlexiDict(yamaro_file).keys():
+        add_line_to_urdf(f'<robot name="{process(load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1]))['robot'][0])}">')
+    else:
+        add_line_to_urdf(f'<robot name="default">')
+    tab_()
+    xml('link', {'name': 'root_link'})
 
 
-# print(load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1])))
+    # print(load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1])))
 
-process_value.current_properties = properties
-print(f'\n{BLUE}starting processing yaml to urdf!{RESET}\n')
+    process_value.current_properties = properties
+    print(f'\n{BLUE}starting processing yaml to urdf!{RESET}\n')
 
-# process input arg so it allows passing variables! for now I will pass barebone properties
-process_yaml_to_urdf(sys.argv[1], properties, [sys.argv[1]])
-untab_()
-add_line_to_urdf('</robot>')
+    # process input arg so it allows passing variables! for now I will pass barebone properties
+    process_yaml_to_urdf(yamaro_file, properties, [yamaro_file])
+    untab_()
+    add_line_to_urdf('</robot>')
 
 
-print(f'\n\n{BLUE}output urdf:{RESET}\n{urdf_output}')
+    print(f'\n\n{BLUE}output urdf:{RESET}\n{urdf_output}')
+
+    return urdf_output
+
+def convert(yamaro_file, *args) -> str:
+    return main(yamaro_file, *args)
+
+
+if __name__ == '__main__':
+    output = main(sys.argv[1], *sys.argv[2:] if len(sys.argv) > 2 else [])
+    with open('output.urdf', 'w') as f:
+        f.write(output)

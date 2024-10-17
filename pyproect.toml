@@ -1,0 +1,24 @@
+# Build system configuration: Choose your build backend
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]  # Dependencies needed to build your package
+build-backend = "setuptools.build_meta"   # Using Setuptools as the build backend
+
+# Project metadata configuration
+[project]
+name = "yamaro_yonitakahashi"      # Package name (must be unique in PyPI)
+version = "0.1.0"                        # Package version using semantic versioning
+authors = [
+  { name="Yoni Takahashi", email="takahashiyoni@example.com" }  # Your details as the author
+]
+description = "YAML->URDF robot definition converter that replaces xacro for ROS"  # Short description of your package
+readme = "README.md"                     # The README file for a detailed description
+requires-python = ">=3.6"                # Minimum Python version required
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU GPLv3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/JOHNI1/yamaro"
+Issues = "https://github.com/JOHNI1/yamaro/issues"
