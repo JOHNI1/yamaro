@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"   # Using Setuptools as the build backen
 name = "yamaro_yonitakahashi"      # Package name (must be unique in PyPI)
 version = "0.1.0"                        # Package version using semantic versioning
 authors = [
-  { name="Yoni Takahashi", email="takahashiyoni@example.com" }  # Your details as the author
+  { name="Yoni Takahashi", email="takahashiyoni@gmail.com" }  # Your details as the author
 ]
 description = "YAML->URDF robot definition converter that replaces xacro for ROS"  # Short description of your package
 readme = "README.md"                     # The README file for a detailed description
@@ -17,6 +17,10 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU GPLv3",
     "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "pyyaml",
 ]
 
 [project.urls]

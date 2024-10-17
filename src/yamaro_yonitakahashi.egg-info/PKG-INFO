@@ -1,3 +1,19 @@
+Metadata-Version: 2.1
+Name: yamaro_yonitakahashi
+Version: 0.1.0
+Summary: YAML->URDF robot definition converter that replaces xacro for ROS
+Author-email: Yoni Takahashi <takahashiyoni@gmail.com>
+Project-URL: Homepage, https://github.com/JOHNI1/yamaro
+Project-URL: Issues, https://github.com/JOHNI1/yamaro/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: GNU GPLv3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: pyyaml
+
 Here's the updated version with your requested additions:
 
 ---

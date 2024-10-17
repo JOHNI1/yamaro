@@ -17,13 +17,13 @@
 
 import os
 import sys
-from .flexidict import load_yaml_to_FlexiDict, FlexiDict
-from .process_value import process
-from . import process_value
-from .pretty_print_dict import pretty_print_dict
 import copy
 import re
 import numpy as np
+from .flexidict import load_yaml_to_FlexiDict, FlexiDict
+from .process_value import process
+from . import process_value
+# from .pretty_print_dict import pretty_print_dict
 
 urdf_output = '<?xml version="1.0" ?>\n'
 spaces = 0

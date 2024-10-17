@@ -17,8 +17,6 @@
 
 import yaml
 
-import math
-
 
 
 def flexidict_to_dict(flexidict_instance):

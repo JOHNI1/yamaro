@@ -1,0 +1,15 @@
+LICENSE
+README.md
+pyproject.toml
+src/yamaro_yonitakahashi/__init__.py
+src/yamaro_yonitakahashi/flexidict.py
+src/yamaro_yonitakahashi/pretty_print_dict.py
+src/yamaro_yonitakahashi/process_value.py
+src/yamaro_yonitakahashi/yamaro.py
+src/yamaro_yonitakahashi.egg-info/PKG-INFO
+src/yamaro_yonitakahashi.egg-info/SOURCES.txt
+src/yamaro_yonitakahashi.egg-info/dependency_links.txt
+src/yamaro_yonitakahashi.egg-info/requires.txt
+src/yamaro_yonitakahashi.egg-info/top_level.txt
+tests/test.py
+tests/test1.py

@@ -16,9 +16,8 @@
 # along with this program. If not, see <https://www.gnu.org/licenses
 
 import re
-from . import flexidict
 import ast
-from ament_index_python.packages import get_package_share_directory
+from . import flexidict
 
 # Global variables
 current_properties = dict(default=dict(variables=dict(), functions=dict()))
@@ -31,7 +30,7 @@ def print_properties():
     RESET = "\033[0m"  # Reset color to default
     print(f'{YELLOW}print_properties:{RESET} {current_properties}')
 
-eval_globals = {"__builtins__": __builtins__, "print_properties": print_properties,    "get_package_share_directory": get_package_share_directory}
+eval_globals = {"__builtins__": __builtins__, "print_properties": print_properties}
 
 def process(value) -> str:
     global current_properties, current_local_key_list
