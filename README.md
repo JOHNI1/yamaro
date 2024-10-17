@@ -1,6 +1,3 @@
-Here's the updated version with your requested additions:
-
----
 
 # Yamaro
 
