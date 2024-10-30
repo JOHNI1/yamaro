@@ -62,10 +62,7 @@ class FlexiDict:
             return self._items[key]
         """Retrieve all values for a given key using dict-like syntax."""
         values = [v for k, v in self._items if k == key]
-        if values:
-            return values
-        else:
-            raise KeyError(key)
+        return values
         
 
     def __iter__(self):

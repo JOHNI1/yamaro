@@ -407,17 +407,27 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
             elif item[0] == 'include':
                 
                 try:
+                    if len(item[1]['namespace']) > 1:
+                        raise ValueError(f"Duplicates of defining the namespace in include found. it can only be defined once for inclusion.")
+                    if len(item[1]['path']) > 1:
+                        raise ValueError(f"Duplicates of defining the path in include found. it can only be defined once for inclusion.")
                     namespace = process(item[1]['namespace'][-1] if 'namespace' in item[1].keys() else 'default')
                     if not namespace[0].isupper() and namespace != 'default':
-                        raise ValueError(f"The function '{item[1]['path']}' must start with a capital letter!")
+                        raise ValueError(f"The namespace '{item[1]['namespace'][-1]}' must start with a capital letter!")
                     path = process(item[1]['path'][-1])
                     if path in yaml_path_list:
                         raise Exception("path included is already used and it will cuase infinite recursion!")
+                    copy_of_properties_to_pass = copy.deepcopy(properties)
+                    for key_ in item[1].keys():
+                        if len(item[1][key_]) > 1:
+                            raise Exception(f'Duplicates of defining the variable {key_} found. it can only be defined once for inclusion.')
+                        if key_ != 'path':
+                            copy_of_properties_to_pass['default']['variables'][key_] = {'scope': 'justpass', 'value': process(item[1][key_][-1])}
                     #the line beneath won't work when namespace is not default and not yet defined because **properties[namespace] is simply non existent and reading it will fail
                     #here I need to implement the logic of only merging values that are global, parent, bridge. ONLY THE VALUES, NOT THE SCOPE!
                     # properties[namespace] = {**properties[namespace], **process_yaml_to_urdf(a, copy.deepcopy(properties))['default']}
                     #if returned variable is bridge scope 
-                    returned_properties = process_yaml_to_urdf(path, copy.deepcopy(properties), (copy.deepcopy(yaml_path_list)).append(path))
+                    returned_properties = process_yaml_to_urdf(path, copy_of_properties_to_pass, (copy.deepcopy(yaml_path_list)).append(path))
                     if namespace not in properties:
                         properties[namespace] = dict(variables = dict(), functions = dict())
                     for key in returned_properties['default']['variables'].keys():
@@ -426,7 +436,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                                 properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
                             else:
                                 properties[namespace]['variables'][key]['value'] = returned_properties['default']['variables'][key]['value']
-                        else:
+                        elif 'justpass' != returned_properties['default']['variables'][key]['scope']:
                             properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
 
                     for key in returned_properties['default']['functions'].keys():
@@ -435,7 +445,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                                 properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
                             else:
                                 properties[namespace]['functions'][key]['value'] = returned_properties['default']['functions'][key]['value']
-                        else:
+                        elif 'justpass' != returned_properties['default']['functions'][key]['scope']:
                             properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
 
 
@@ -474,7 +484,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                     if (eval(condition)):
                         process_level(item[1]['body'][-1], local_key_list)
                 except Exception as e:
-                    raise Exception(f"Error processing for loop. {e}")
+                    raise Exception(f"Error processing if. {e}")
             elif item[0][0].isupper():  #function                      
                 def CallFunction(ns, function_name):
                     function_args = []

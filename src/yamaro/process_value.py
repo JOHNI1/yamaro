@@ -18,6 +18,7 @@
 import re
 import ast
 from . import flexidict
+# import flexidict
 
 # Global variables
 current_properties = dict(default=dict(variables=dict(), functions=dict()))
@@ -148,18 +149,24 @@ def process_value(value, properties, local_key_list) -> str:
             for var_name in eval_globals.keys():
                 if var_name in old_eval_globals and old_eval_globals[var_name] == eval_globals[var_name]:
                     continue  # Skip if the value hasn't changed
+
+                # Add the variable name to the local_key_list only if it's not in current_properties
+                if var_name not in current_properties['default']['variables'].keys():
+                    if var_name in local_key_list:
+                        raise Exception(f"something went wrong in process_value with local_key_list(yamaro's fault.). the variable defined in the expression {value} seems to be already in local_key_list but its not in current_properties.")
+                    local_key_list.append(var_name)
+                    
                 var_value = eval_globals[var_name]
                 # Convert var_value back to string for storage
                 var_value_str = repr(var_value)
+
                 if var_name in properties['default']['variables']:
                     # Update existing variable
                     properties['default']['variables'][var_name]['value'] = var_value_str
                 else:
                     # Add new variable
                     properties['default']['variables'][var_name] = {'value': var_value_str, 'scope': 'local'}
-                # Add the variable name to the local_key_list
-                if var_name not in local_key_list:
-                    local_key_list.append(var_name)
+                    
 
 
         result += str(evaluated)
@@ -184,10 +191,19 @@ if __name__ == "__main__":
             }
         }
     }
+    print(current_properties)
+    a = []
+    current_local_key_list = a
     process(f'$(a=0)')
     print(current_properties)
-    process(f'$(a=1)')
+    print('a:', a)
+
+    b = []
+    current_local_key_list = b
+    process(f'$(a=0)')
     print(current_properties)
+    print('b:', b)
+
 
     
     # current_local_key_list = []

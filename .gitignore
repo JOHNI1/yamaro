@@ -1,2 +1,3 @@
 dist
 tests
+src/yamaro/__pycache__
