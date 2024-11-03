@@ -27,18 +27,18 @@ from . import process_value
 
 urdf_output = '<?xml version="1.0" ?>\n'
 spaces = 0
-tab = 2
+TAB = 2
 
 
 
 
 def tab_():
     global spaces
-    spaces += tab
+    spaces += TAB
 
 def untab_():
     global spaces
-    spaces -= tab
+    spaces -= TAB
 
 def add_line_to_urdf(line):
 
@@ -247,27 +247,27 @@ def part_process(item, local_key_list, process_level):
                                 elif not sub_key == '':
                                     l_comp_extras.add(sub_key, sub_item[1])
                                     
-                                    
-                            if sub_vars['geometry'].lower() == 'box':
-                                l_comp_list[index].append(
-                                    lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('box', attributes=dict(size=sub_vars['scale']))])
-                                )
-                            elif sub_vars['geometry'].lower() == 'cylinder':
-                                radius, length = float(split_(sub_vars['scale'])[0]), float(split_(sub_vars['scale'])[1])
-                                l_comp_list[index].append(
-                                    lambda radius=radius, length=length: xml(
-                                        'geometry', body=[lambda: xml('cylinder', attributes=dict(radius=radius, length=length))]
+                            match sub_vars['geometry'].lower(): 
+                                case 'box':
+                                    l_comp_list[index].append(
+                                        lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('box', attributes=dict(size=sub_vars['scale']))])
                                     )
-                                )
-                            elif sub_vars['geometry'].lower() == 'sphere':
-                                radius = float(split_(sub_vars['scale'])[0])
-                                l_comp_list[index].append(
-                                    lambda radius=radius: xml('geometry', body=[lambda: xml('sphere', attributes=dict(radius=radius))])
-                                )
-                            else:
-                                l_comp_list[index].append(
-                                    lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('mesh', attributes=dict(filename=sub_vars['geometry'], scale=sub_vars['scale']))])
-                                )
+                                case 'cylinder':
+                                    radius, length = float(split_(sub_vars['scale'])[0]), float(split_(sub_vars['scale'])[1])
+                                    l_comp_list[index].append(
+                                        lambda radius=radius, length=length: xml(
+                                            'geometry', body=[lambda: xml('cylinder', attributes=dict(radius=radius, length=length))]
+                                        )
+                                    )
+                                case 'sphere':
+                                    radius = float(split_(sub_vars['scale'])[0])
+                                    l_comp_list[index].append(
+                                        lambda radius=radius: xml('geometry', body=[lambda: xml('sphere', attributes=dict(radius=radius))])
+                                    )
+                                case _:
+                                    l_comp_list[index].append(
+                                        lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('mesh', attributes=dict(filename=sub_vars['geometry'], scale=sub_vars['scale']))])
+                                    )
 
 
 
@@ -304,20 +304,21 @@ def part_process(item, local_key_list, process_level):
 
 ite = 0
 def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
-    temp = process_value.current_properties
+    # temp = process_value.current_properties
     process_value.current_properties = properties
 
-    '''remove local parent variables and replace child scope with bridge scope'''
-    for key in list(properties['default']['variables'].keys()):
-        if properties['default']['variables'][key]['scope'] in 'local parent':
-            del properties['default']['variables'][key]
-        elif properties['default']['variables'][key]['scope'] in 'child':
-            properties['default']['variables'][key]['scope'] = 'bridge'
-    for key in list(properties['default']['functions'].keys()):
-        if properties['default']['functions'][key]['scope'] in 'local parent':
-            del properties['default']['functions'][key]
-        elif properties['default']['functions'][key]['scope'] in 'child':
-            properties['default']['functions'][key]['scope'] = 'bridge'
+    '''remove local, parent variables and replace child scope with bridge scope'''
+    for ns_ in properties.keys():
+        for key in list(properties[ns_]['variables'].keys()):
+            if properties[ns_]['variables'][key]['scope'] in 'local parent':
+                del properties[ns_]['variables'][key]
+            elif properties[ns_]['variables'][key]['scope'] in 'child':
+                properties[ns_]['variables'][key]['scope'] = 'bridge'
+        for key in list(properties[ns_]['functions'].keys()):
+            if properties[ns_]['functions'][key]['scope'] in 'local parent':
+                del properties[ns_]['functions'][key]
+            elif properties[ns_]['functions'][key]['scope'] in 'child':
+                properties[ns_]['functions'][key]['scope'] = 'bridge'
 
     top_local_key_list = []
     process_value.current_local_key_list = top_local_key_list
@@ -336,19 +337,17 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                 scope = process(tag[1] if len(tag) == 2 else 'local')
                 if scope not in 'local parent child global'.split():
                     raise ValueError(f"The scope of variable '{name}' is wrong! 'local parent child global' are allowed")
-                if name in properties['default']['variables'].keys():
-                    if properties['default']['variables'][name]['scope'] != 'arg':
-                        raise ValueError(f"The variable '{name}' is already defined!")
-                if (temp['default']['variables'][name]['scope'] in 'child parent' and scope in 'parent global') if name in temp['default']['variables'].keys() else False:
-                    raise ValueError(f"The variable '{name}' is already defined!")
+                # if name in properties['default']['variables'].keys():
+                #     if properties['default']['variables'][name]['scope'] in 'arg justpass bridge'.split():
+                #         raise ValueError(f"The variable '{name}' is already defined!")
+                # if (temp['default']['variables'][name]['scope'] in 'child parent' and scope in 'parent global') if name in temp['default']['variables'].keys() else False:
+                #     raise ValueError(f"The variable '{name}' is already defined!")
                 if '.' in key:
                     raise ValueError(f"The variable '{name}' cannot contain dots.")
-                if name in properties['default']['variables'].keys():
-                    if properties['default']['variables'][name]['scope'] != 'arg':
-                        properties['default']['variables'][name] = {'value': process(value), 'scope': scope}
-                else:
+                if name not in properties['default']['variables'] or properties['default']['variables'][name]['scope'] not in ['arg', 'justpass', 'bridge']:
                     properties['default']['variables'][name] = {'value': process(value), 'scope': scope}
-
+                if properties['default']['variables'][name]['scope'] == 'justpass' and scope in 'parent global'.split():
+                    properties['default']['variables'][name]['scope'] = scope #newly added. review this!
         elif 'functions' == define_key:
             for key, value in file_data[position][1] if file_data[position][1] is not None else []:
                 tag = key.split('/')
@@ -358,13 +357,13 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                     raise ValueError(f"The scope of function '{name}' is wrong! 'local parent child global' are allowed")
                 if name in properties['default']['functions'].keys():
                     raise ValueError(f"The function '{name}' is already defined!")
-                if (temp['default']['functions'][name]['scope'] in 'child parent' and scope in 'parent global') if name in temp['default']['functions'].keys() else False:
-                    raise ValueError(f"The function '{name}' is already defined!")
+                # if (temp['default']['functions'][name]['scope'] in 'child parent' and scope in 'parent global') if name in temp['default']['functions'].keys() else False:
+                #     raise ValueError(f"The function '{name}' is already defined!")
                 if '.' in key:
                     raise ValueError(f"The function '{name}' cannot contain dots.")
                 if not name[0].isupper():
                     raise ValueError(f"The function '{name}' must start with a capital letter!")
-                properties['default']['functions'][process(name)] = {'value': value, 'scope': scope}
+                properties['default']['functions'][name] = {'value': value, 'scope': scope}
 
         elif 'import' ==  define_key:
             for value in file_data[position][1] if file_data[position][1] is not None else []:
@@ -385,191 +384,211 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
         global ite
         ite += 1
         local_key_list = []
-        global current_local_key_list
-        current_local_key_list = local_key_list
+        process_value.current_local_key_list = local_key_list
 
         for item in layer if layer is not None else []:
             item[0] = process(item[0])################## still not sure if its good idea to change the original yaml read data
             # print(file_data)
 
             # print('ite: ', ite, "prop: ", properties['default']['variables'])
-            if item[0] == 'part':
-                part_process(copy.deepcopy(item[1]), local_key_list, process_level)
-
-            elif item[0] == 'process':
-                process(f'$({item[1]})')
-            elif item[0] == 'print':
-                # print(properties)
-                # ANSI escape codes for colors
-                GREEN = "\033[32m"
-                RESET = "\033[0m"  # Reset color to default
-                print(f'{GREEN}user_print:{RESET} {process(item[1])}')
-            elif item[0] == 'include':
-                
-                try:
-                    if len(item[1]['namespace']) > 1:
-                        raise ValueError(f"Duplicates of defining the namespace in include found. it can only be defined once for inclusion.")
-                    if len(item[1]['path']) > 1:
-                        raise ValueError(f"Duplicates of defining the path in include found. it can only be defined once for inclusion.")
-                    namespace = process(item[1]['namespace'][-1] if 'namespace' in item[1].keys() else 'default')
-                    if not namespace[0].isupper() and namespace != 'default':
-                        raise ValueError(f"The namespace '{item[1]['namespace'][-1]}' must start with a capital letter!")
-                    path = process(item[1]['path'][-1])
-                    if path in yaml_path_list:
-                        raise Exception("path included is already used and it will cuase infinite recursion!")
-                    copy_of_properties_to_pass = copy.deepcopy(properties)
-                    for key_ in item[1].keys():
-                        if len(item[1][key_]) > 1:
-                            raise Exception(f'Duplicates of defining the variable {key_} found. it can only be defined once for inclusion.')
-                        if key_ != 'path':
-                            copy_of_properties_to_pass['default']['variables'][key_] = {'scope': 'justpass', 'value': process(item[1][key_][-1])}
-                    #the line beneath won't work when namespace is not default and not yet defined because **properties[namespace] is simply non existent and reading it will fail
-                    #here I need to implement the logic of only merging values that are global, parent, bridge. ONLY THE VALUES, NOT THE SCOPE!
-                    # properties[namespace] = {**properties[namespace], **process_yaml_to_urdf(a, copy.deepcopy(properties))['default']}
-                    #if returned variable is bridge scope 
-                    returned_properties = process_yaml_to_urdf(path, copy_of_properties_to_pass, (copy.deepcopy(yaml_path_list)).append(path))
-                    if namespace not in properties:
-                        properties[namespace] = dict(variables = dict(), functions = dict())
-                    for key in returned_properties['default']['variables'].keys():
-                        if key in properties[namespace]['variables'].keys():
-                            if properties[namespace]['variables'][key]['scope'] == 'local':
-                                properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
-                            else:
-                                properties[namespace]['variables'][key]['value'] = returned_properties['default']['variables'][key]['value']
-                        elif 'justpass' != returned_properties['default']['variables'][key]['scope']:
-                            properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
-
-                    for key in returned_properties['default']['functions'].keys():
-                        if key in properties[namespace]['functions'].keys():
-                            if properties[namespace]['functions'][key]['scope'] == 'local':
-                                properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
-                            else:
-                                properties[namespace]['functions'][key]['value'] = returned_properties['default']['functions'][key]['value']
-                        elif 'justpass' != returned_properties['default']['functions'][key]['scope']:
-                            properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
-
-
-                    process_value.current_properties = properties
-
-                except Exception as e:
-                    raise Exception(f"Error processing file '{item[1]['path']}'. {e}")
-
-
-            elif item[0] == 'for':
-                try:
-                    iterator = process(item[1]['iterator'][0])
-                    range_ = split_(process(str(item[1]['range'][0])))
-
-
-                    if len(range_) == 1:
-                        range_.append(range_[0])
-                        range_[0] = 0
-                        range_.append(1)
-                    elif len(range_) == 2:
-                        range_.append(1)
-
-                    for t in range(int(range_[0]), int(range_[1]), int(range_[2])):
-                        process(f'$({iterator} = {t})')
-                        # print(pretty_print_dict(properties))
-                        process_level(item[1]['body'][-1], local_key_list)
-                except Exception as e:
-                    raise Exception(f"Error processing for loop. {e}")
-
-            elif item[0] == 'if':
-                # print(properties['default']['variables'])
-                try:
-                    condition = process(f'$({item[1]['condition'][0]})')
-                    # print(item[1]['condition'][0])
-                    # print(condition)
-                    if (eval(condition)):
-                        process_level(item[1]['body'][-1], local_key_list)
-                except Exception as e:
-                    raise Exception(f"Error processing if. {e}")
-            elif item[0][0].isupper():  #function                      
-                def CallFunction(ns, function_name):
-                    function_args = []
-                    # print(properties['default'])
-                    # print()
-                    # print(process((properties[ns]['functions'][function_name]['value'])['input'][-1]))
-                    # print()
-                    # print(f"aaaaa {function_name}: ", (properties[ns]['functions'][function_name]['value'])['input'][-1])
-                    # print()
-                    # print(item)
-                    function_inputs = process((properties[ns]['functions'][function_name]['value'])['input'][-1] if (properties[ns]['functions'][function_name]['value'])['input'][-1] is not None else '').split(',')
-                    passed_param_list = []
-
-                    for param in function_inputs:
-                        if '**' in param:
-                            if (param.replace('*', '').strip() not in list(properties['default']['functions'].keys())):
-                                if ((param.replace('*', '').strip())[0]).isupper():
-                                    function_args.append(param.replace('*', '').strip())
+            match item[0]:
+                case 'part':
+                    part_process(copy.deepcopy(item[1]), local_key_list, process_level)
+                case 'process':
+                    process(f'$({item[1]})')
+                case 'print':
+                    # print(properties)
+                    # ANSI escape codes for colors
+                    GREEN = "\033[32m"
+                    RESET = "\033[0m"  # Reset color to default
+                    print(f'{GREEN}user_print:{RESET} {process(item[1])}')
+                case 'include':
+                    try:
+                        if len(item[1]['namespace']) > 1:
+                            raise ValueError(f"Duplicates of defining the namespace in include found. it can only be defined once for inclusion.")
+                        if len(item[1]['path']) > 1:
+                            raise ValueError(f"Duplicates of defining the path in include found. it can only be defined once for inclusion.")
+                        namespace = process(item[1]['namespace'][-1] if 'namespace' in item[1].keys() else 'default')
+                        if not namespace[0].isupper() and namespace != 'default': #default namespace is the only namespace that is lowercase and is accessible directly
+                            raise ValueError(f"The namespace '{item[1]['namespace'][-1]}' must start with a capital letter!")
+                        path = process(item[1]['path'][-1])
+                        if path in yaml_path_list:
+                            raise Exception("path included is already used and it will cuase infinite recursion!")
+                        copy_of_properties_to_pass = copy.deepcopy(properties)
+                        for key_ in item[1].keys():
+                            if len(item[1][key_]) > 1:
+                                raise Exception(f'Duplicates of defining the variable {key_} found. It can only be defined once for inclusion.')
+                            if key_ != 'path' and key_ != 'namespace':
+                                copy_of_properties_to_pass['default']['variables'][key_] = {'scope': 'justpass', 'value': process(item[1][key_][-1])}
+                        #the line beneath won't work when namespace is not default and not yet defined because **properties[namespace] is simply non existent and reading it will fail
+                        #here I need to implement the logic of only merging values that are global, parent, bridge. ONLY THE VALUES, NOT THE SCOPE!
+                        # properties[namespace] = {**properties[namespace], **process_yaml_to_urdf(a, copy.deepcopy(properties))['default']}
+                        #if returned variable is bridge scope 
+                        returned_properties = process_yaml_to_urdf(path, copy_of_properties_to_pass, (copy.deepcopy(yaml_path_list)).append(path))
+                        if namespace not in properties:
+                            properties[namespace] = dict(variables = dict(), functions = dict())
+                        for key in returned_properties['default']['variables'].keys():
+                            if key in properties[namespace]['variables'].keys():
+                                if properties[namespace]['variables'][key]['scope'] == 'local':
+                                    properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
                                 else:
-                                    raise ValueError(f"The function parameter '{param}' has to have a name that starts with an uppercase letter.")
+                                    properties[namespace]['variables'][key]['value'] = returned_properties['default']['variables'][key]['value']
+                            elif 'justpass' != returned_properties['default']['variables'][key]['scope']:
+                                properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
+
+                        for key in returned_properties['default']['functions'].keys():
+                            if key in properties[namespace]['functions'].keys():
+                                if properties[namespace]['functions'][key]['scope'] == 'local':
+                                    properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
+                                else:
+                                    properties[namespace]['functions'][key]['value'] = returned_properties['default']['functions'][key]['value']
+                            elif 'justpass' != returned_properties['default']['functions'][key]['scope']:
+                                properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
+                                
+                        for returned_ns in returned_properties.keys(): #get returned properties's namespaces. merge them to the current properties
+                            if returned_ns != 'default':
+                                for key in returned_properties[returned_ns]['variables'].keys():
+                                    if key in properties[returned_ns]['variables'].keys():
+                                        if properties[returned_ns]['variables'][key]['scope'] == 'local':
+                                            properties[returned_ns]['variables'][key] = returned_properties[returned_ns]['variables'][key]
+                                        else:
+                                            properties[returned_ns]['variables'][key]['value'] = returned_properties[returned_ns]['variables'][key]['value']
+                                    elif 'justpass' != returned_properties[returned_ns]['variables'][key]['scope']:
+                                        properties[returned_ns]['variables'][key] = returned_properties[returned_ns]['variables'][key]
+
+                                for key in returned_properties[returned_ns]['functions'].keys():
+                                    if key in properties[returned_ns]['functions'].keys():
+                                        if properties[returned_ns]['functions'][key]['scope'] == 'local':
+                                            properties[returned_ns]['functions'][key] = returned_properties[returned_ns]['functions'][key]
+                                        else:
+                                            properties[returned_ns]['functions'][key]['value'] = returned_properties[returned_ns]['functions'][key]['value']
+                                    elif 'justpass' != returned_properties[returned_ns]['functions'][key]['scope']:
+                                        properties[returned_ns]['functions'][key] = returned_properties[returned_ns]['functions'][key]
+
+
+
+                        process_value.current_properties = properties
+
+                    except Exception as e:
+                        raise Exception(f"Error processing file '{item[1]['path']}'. {e}")
+
+                case 'for':
+                    try:
+                        iterator = process(item[1]['iterator'][0])
+                        range_ = split_(process(str(item[1]['range'][0])))
+
+
+                        if len(range_) == 1:
+                            range_.append(range_[0])
+                            range_[0] = 0
+                            range_.append(1)
+                        elif len(range_) == 2:
+                            range_.append(1)
+
+                        for t in range(int(range_[0]), int(range_[1]), int(range_[2])):
+                            process(f'$({iterator} = {t})')
+                            # print(pretty_print_dict(properties))
+                            process_level(item[1]['body'][-1], local_key_list)
+                    except Exception as e:
+                        raise Exception(f"Error processing for loop. {e}")
+
+                case 'if':
+                    # print(properties['default']['variables'])
+                    try:
+                        condition = process(f'$({item[1]['condition'][0]})')
+                        # print(item[1]['condition'][0])
+                        # print(condition)
+                        if (eval(condition)):
+                            process_level(item[1]['body'][-1], local_key_list)
+                    except Exception as e:
+                        raise Exception(f"Error processing if. {e}")
+                case _:
+                    if item[0][0].isupper():  #function                      
+                        def CallFunction(ns, function_name):
+                            function_args = []
+                            # print(properties['default'])
+                            # print()
+                            # print(process((properties[ns]['functions'][function_name]['value'])['input'][-1]))
+                            # print()
+                            # print(f"aaaaa {function_name}: ", (properties[ns]['functions'][function_name]['value'])['input'][-1])
+                            # print()
+                            # print(item)
+                            function_inputs = process((properties[ns]['functions'][function_name]['value'])['input'][-1] if (properties[ns]['functions'][function_name]['value'])['input'][-1] is not None else '').split(',')
+                            passed_param_list = []
+
+                            for param in function_inputs:
+                                if '**' in param:
+                                    if (param.replace('*', '').strip() not in list(properties[ns]['functions'].keys())):
+                                        if ((param.replace('*', '').strip())[0]).isupper():
+                                            function_args.append(param.replace('*', '').strip())
+                                        else:
+                                            raise ValueError(f"The function parameter '{param}' has to have a name that starts with an uppercase letter.")
+                                    else:
+                                        raise ValueError(f"The function parameter '{param}' is defined already!.")
+
+                            if item[1] is not None:
+                                for key in item[1].keys():
+                                    processed_key = process(key)
+                                    if processed_key in function_args:
+                                        value = FlexiDict()
+                                        value.add('input', None)
+                                        value.add('body', item[1][key][-1])
+                                        properties[ns]['functions'][processed_key] = {'value': value, 'scope': 'local'}
+                                    else:
+                                        passed_param_list.append(processed_key)
+                                        process(f'$({processed_key} = "{process(item[1][key][-1])}")')
+                                                                            
+                            for param in function_inputs:
+                                if '=' in param:
+                                    if param.split('=')[0].strip() not in passed_param_list:
+                                        process(f'$({param.split("=")[0].strip()} = "{process(param.split("=")[1].strip())}")')
+
+                            # print('hiiiiiiii: ', (properties[ns]['functions'][function_name]['value'])['body'][-1])
+                            process_level((properties[ns]['functions'][function_name]['value'])['body'][-1], local_key_list)
+                            for argument_funciton in function_args:
+                                del properties[ns]['functions'][argument_funciton] #delete the passed function in its namespace because its supposed to be temporary!!!!
+
+                        tag = item[0].split('.')
+                        if len(tag) == 2 and tag[0] in properties.keys(): #if namespace is defined
+                            if tag[1] in properties[tag[0]]['functions'].keys():
+                                CallFunction(tag[0], tag[1])
                             else:
-                                raise ValueError(f"The function parameter '{param}' is defined already!.")
+                                raise KeyError(f"The function '{tag[1]}' is not defined in namespace '{tag[0]}'. Ensure that the function is defined in the same namespace or use default namespace.")
 
-                    if item[1] is not None:
-                        for key in item[1].keys():
-                            processed_key = process(key)
-                            if processed_key in function_args:
-                                value = FlexiDict()
-                                value.add('input', None)
-                                value.add('body', item[1][key][-1])
-                                properties['default']['functions'][processed_key] = {'value': value, 'scope': 'local'}
-                            else:
-                                passed_param_list.append(processed_key)
-                                process(f'$({processed_key} = "{process(item[1][key][-1])}")')
-                                                                    
-                    for param in function_inputs:
-                        if '=' in param:
-                            if param.split('=')[0].strip() not in passed_param_list:
-                                process(f'$({param.split("=")[0].strip()} = "{process(param.split("=")[1].strip())}")')
+                        elif len(tag) == 1 and tag[0] in properties['default']['functions'].keys():
+                            CallFunction('default', tag[0])
 
-                    # print('hiiiiiiii: ', (properties[ns]['functions'][function_name]['value'])['body'][-1])
-                    process_level((properties[ns]['functions'][function_name]['value'])['body'][-1], local_key_list)
-
-                tag = item[0].split('.')
-                if len(tag) == 2 and tag[0] in properties.keys(): #if namespace is defined
-                    if tag[1] in properties[tag[0]]['functions'].keys():
-                        CallFunction(tag[0], tag[1])
+                        else:
+                            raise ValueError(f"The '{tag}' is causing syntax error. For calling function, ensure that it is defined. If you specified namespace, use namespace.my_function to resolve it. Namespaces cannot be nested!")
                     else:
-                        raise KeyError(f"The function '{tag[1]}' is not defined in namespace '{tag[0]}'. Ensure that the function is defined in the same namespace or use default namespace.")
-
-                elif len(tag) == 1 and tag[0] in properties['default']['functions'].keys():
-                    CallFunction('default', tag[0])
-
-                else:
-                    raise ValueError(f"The '{tag}' is causing syntax error. For calling function, ensure that it is defined. If you specified namespace, use namespace.my_function to resolve it. Namespaces cannot be nested!")
-            else:
-                ele_att = item[0].split('/')
-                att = {}
-                if len(ele_att) > 1:
-                    if ele_att[1] != '':
-                        attributes = ele_att[1].split(',')
-                        for attribute in attributes:
-                            attribute = attribute.lstrip()
-                            if ':' in attribute:
-                                att[attribute.split(':')[0]] = attribute.split(':')[1]
-                            elif ':=' in attribute:
-                                att[attribute.split(':=')[0]] = attribute.split(':=')[1]
-                            else:
-                                att[attribute.split('=')[0]] = attribute.split('=')[1]
-                    # Capture 'item' by value in the lambda's default parameters
-                # print(type(item[1]))
-                if isinstance(item[1], FlexiDict) or isinstance(item[1], dict) or isinstance(item[1], list) or item[1] is None:
-                    xml(
-                        ele_att[0],
-                        att,
-                        [lambda item1=item[1], local_key_list=local_key_list: process_level(item1, local_key_list)]
-                    )
-                else:
-                    argument = ''.join(' {key}="{value}"'.format(key=key, value=str(att[key]).strip('\'"')) for key in att)
-                    add_line_to_urdf('<{element}{argument}>{v}</{element}{argument}>'.format(element=ele_att[0], argument=argument, v=process(item[1])))
+                        ele_att = item[0].split('/')
+                        att = {}
+                        if len(ele_att) > 1 and ele_att[1] != '':
+                            attributes = ele_att[1].split(',')
+                            for attribute in attributes:
+                                attribute = attribute.lstrip()
+                                if ':' in attribute:
+                                    att[attribute.split(':')[0]] = attribute.split(':')[1]
+                                elif ':=' in attribute:
+                                    att[attribute.split(':=')[0]] = attribute.split(':=')[1]
+                                else:
+                                    att[attribute.split('=')[0]] = attribute.split('=')[1]
+                            # Capture 'item' by value in the lambda's default parameters
+                        # print(type(item[1]))
+                        if isinstance(item[1], FlexiDict) or isinstance(item[1], dict) or isinstance(item[1], list) or item[1] is None:
+                            xml(
+                                ele_att[0],
+                                att,
+                                [lambda item1=item[1], local_key_list=local_key_list: process_level(item1, local_key_list)]
+                            )
+                        else:
+                            argument = ''.join(' {key}="{value}"'.format(key=key, value=str(att[key]).strip('\'"')) for key in att)
+                            add_line_to_urdf('<{element}{argument}>{v}</{element}{argument}>'.format(element=ele_att[0], argument=argument, v=process(item[1])))
 
 
 
 
-                
+                    
 
 
 
@@ -585,18 +604,19 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
     process_level(file_data['model'][-1], top_local_key_list)
     # print('after: ',properties, '\n')
 
+    for ns_ in properties.keys():
+        for key in list(properties[ns_]['variables'].keys()):
+            
+            if properties[ns_]['variables'][key]['scope'] in 'local child'.split():
+                del properties[ns_]['variables'][key]
+            elif properties[ns_]['variables'][key]['scope'] in 'parent'.split():
+                properties[ns_]['variables'][key]['scope'] = 'bridge'
 
-    for key in list(properties['default']['variables'].keys()):
-        if properties['default']['variables'][key]['scope'] in 'local child':
-            del properties['default']['variables'][key]
-        elif properties['default']['variables'][key]['scope'] in 'parent':
-            properties['default']['variables'][key]['scope'] = 'bridge'
-
-    for key in list(properties['default']['functions'].keys()):
-        if properties['default']['functions'][key]['scope'] in 'local child':
-            del properties['default']['functions'][key]
-        elif properties['default']['functions'][key]['scope'] in 'parent':
-            properties['default']['functions'][key]['scope'] = 'bridge'
+        for key in list(properties[ns_]['functions'].keys()):
+            if properties[ns_]['functions'][key]['scope'] in 'local child'.split():
+                del properties[ns_]['functions'][key]
+            elif properties[ns_]['functions'][key]['scope'] in 'parent'.split():
+                properties[ns_]['functions'][key]['scope'] = 'bridge'
 
     '''properties should have only global, bridge and parent values'''
     return properties

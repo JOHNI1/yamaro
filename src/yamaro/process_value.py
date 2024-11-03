@@ -19,6 +19,9 @@ import re
 import ast
 from . import flexidict
 # import flexidict
+from .pretty_print_dict import pretty_print_dict
+# from pretty_print_dict import pretty_print_dict
+
 
 # Global variables
 current_properties = dict(default=dict(variables=dict(), functions=dict()))
@@ -29,7 +32,8 @@ current_local_key_list = []
 def print_properties():
     YELLOW = "\033[33m"
     RESET = "\033[0m"  # Reset color to default
-    print(f'{YELLOW}print_properties:{RESET} {current_properties}')
+    print(f'{YELLOW}print_properties:{RESET} {pretty_print_dict(current_properties)}')
+
 
 eval_globals = {"__builtins__": __builtins__, "print_properties": print_properties}
 
@@ -49,6 +53,11 @@ def auto_convert(value_str):
         return value_str
 
 def process_value(value, properties, local_key_list) -> str:
+    # print(id(current_properties), id(properties))
+    # print(value)
+    # print(properties)
+
+    # print(current_properties['default']['variables'].keys())    
     global eval_globals  # Use the persistent eval_globals
     # Process non-string values recursively
     if not isinstance(value, str):
@@ -151,7 +160,7 @@ def process_value(value, properties, local_key_list) -> str:
                     continue  # Skip if the value hasn't changed
 
                 # Add the variable name to the local_key_list only if it's not in current_properties
-                if var_name not in current_properties['default']['variables'].keys():
+                if var_name not in properties['default']['variables'].keys():
                     if var_name in local_key_list:
                         raise Exception(f"something went wrong in process_value with local_key_list(yamaro's fault.). the variable defined in the expression {value} seems to be already in local_key_list but its not in current_properties.")
                     local_key_list.append(var_name)
@@ -175,8 +184,6 @@ def process_value(value, properties, local_key_list) -> str:
     result += value[last_idx:]
     return result
 
-
-
 if __name__ == "__main__":
     current_properties = {
         'default': {
@@ -191,18 +198,61 @@ if __name__ == "__main__":
             }
         }
     }
-    print(current_properties)
-    a = []
-    current_local_key_list = a
-    process(f'$(a=0)')
-    print(current_properties)
-    print('a:', a)
+    process(f'$(import math)')
+    process(f'$(print(math.sqrt(9)))')
 
-    b = []
-    current_local_key_list = b
-    process(f'$(a=0)')
-    print(current_properties)
-    print('b:', b)
+# if __name__ == "__main__":
+#     current_properties = {
+#         'default': {
+#             'variables': {
+#                 'x': {'value': 10, 'scope': 'global'},
+#                 'y': {'value': 20, 'scope': 'local'}
+#             }
+#         },
+#         'namespace1': {
+#             'variables': {
+#                 'y': {'value': 20, 'scope': 'local'}
+#             }
+#         }
+#     }
+#     process(f'$(a=10)')
+#     del current_properties['default']['variables']['a']
+#     process(f'$(print(a))')
+
+
+# if __name__ == "__main__":
+#     current_properties = {
+#         'default': {
+#             'variables': {
+#                 'x': {'value': 10, 'scope': 'global'},
+#                 'y': {'value': 20, 'scope': 'local'}
+#             }
+#         },
+#         'namespace1': {
+#             'variables': {
+#                 'y': {'value': 20, 'scope': 'local'}
+#             }
+#         }
+#     }
+#     print(current_properties)
+#     a = []
+#     current_local_key_list = a
+#     process(f'$(a=0)')
+#     print(current_properties)
+#     print('a:', a)
+
+#     b = []
+#     current_local_key_list = b
+#     process(f'$(a=0)')
+#     print(current_properties)
+#     print('b:', b)
+
+#     process(f'$(import os)')
+#     print('hiiiiiii')
+
+#     process(f'$(a=os.path.expanduser("~/yamaro/dronecopy.py"))')
+
+#     print(process('$(a)'))
 
 
     

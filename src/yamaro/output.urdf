@@ -1,42 +1,41 @@
 <?xml version="1.0" ?>
-<robot name="robot">
+<robot name="drone">
   <link name="root_link"/>
-  <joint name="arm_left_joint" type="revolute">
+  <gazebo name="part0">
+    <a>1</a>
+  </gazebo>
+  <joint name="part0_joint" type="fixed">
     <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
-    <child link="arm_left_link"/>
-    <parent link="base_link"/>
+    <child link="part0_link"/>
+    <parent link="root_link"/>
+    <gazebo xyz="1 1 1">
+    </gazebo>
   </joint>
-  <link name="arm_left_link">
+  <link name="part0_link">
     <collision>
       <geometry>
-        <box size="1.2 0.1 0.1"/>
+        <sphere radius="1.0"/>
       </geometry>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <gazebo xyz="1 1 1">
+      </gazebo>
     </collision>
     <visual>
       <geometry>
-        <box size="1.2 0.1 0.1"/>
+        <sphere radius="1.0"/>
       </geometry>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <gazebo xyz="1 1 1">
+      </gazebo>
     </visual>
-  </link>
-  <joint name="arm_right_joint" type="revolute">
-    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
-    <child link="arm_right_link"/>
-    <parent link="base_link"/>
-  </joint>
-  <link name="arm_right_link">
-    <collision>
-      <geometry>
-        <box size="1.0 0.1 0.1"/>
-      </geometry>
+    <inertial>
+      <mass value="10"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
-    </collision>
-    <visual>
-      <geometry>
-        <box size="1.0 0.1 0.1"/>
-      </geometry>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
-    </visual>
+      <inertia ixx="4.0" ixy="0" ixz="0" iyy="4.0" iyz="0" izz="4.0"/>
+      <gazebo xyz="1 1 1">
+      </gazebo>
+    </inertial>
+    <gazebo xyz="1 1 1">
+    </gazebo>
   </link>
 </robot>

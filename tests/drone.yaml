@@ -29,6 +29,7 @@ robot: drone
 import: 
   - math
   - ament_index_python.packages
+  - os
 
 
 variables:
@@ -67,27 +68,37 @@ functions:
 
 
 model:
-  process: print_properties()
   process: import numpy
   print: $(right)
   print: $(x['a'])
   print: $(1+pi)
   print: $(y['a'])
-
-  for:
-    iterator: i
-    range: 1
+  if:
+    condition: True
     body:
-      gazebo/name=part$(i):
-        a: 1
-      MakePart:
-        name: part$(i)
-        type: fixed
-        parent: root_link
-        xyz: '$(i) $(i) $(i)'
-        rpy: '$(i) $(i) $(i)'
-        geometry: sphere
-        scale: '1'
-        Block_To_Insert:
-          gazebo/xyz=1 1 1:
+      for:
+        iterator: i
+        range: 1
+        body:
+          process: mom = 1000
+          gazebo/name=part$(i):
             a: 1
+          MakePart:
+            name: part$(i)
+            type: fixed
+            parent: root_link
+            xyz: '$(i) $(i) $(i)'
+            rpy: '$(i) $(i) $(i)'
+            geometry: sphere
+            scale: '1'
+            Block_To_Insert:
+              gazebo/xyz=1 1 1:
+            a: 1
+          print: mom = $(mom)
+          # process: print_properties()
+        print: i = $(i)
+  include:
+    path: $(os.path.expanduser("~/yamaro/tests/dronecopy.yaml"))
+    namespace: Dronecopy
+    xs: 1
+  process: print_properties()
