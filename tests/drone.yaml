@@ -188,3 +188,26 @@
 #     xs: 1
 #   process: print_properties()
 
+
+robot: drone
+
+import: 
+  - math
+  - ament_index_python.packages
+  - os
+
+
+variables:
+
+
+functions:
+
+
+
+model:
+  include:
+    path: $(os.path.expanduser("~/yamaro/tests/dronecopy.yaml"))
+    namespace: Dronecopy
+    parent: 0
+  process: print_properties()
+  # print: $(parent)

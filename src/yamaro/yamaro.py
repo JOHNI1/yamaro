@@ -422,7 +422,9 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                         #here I need to implement the logic of only merging values that are global, parent, bridge. ONLY THE VALUES, NOT THE SCOPE!
                         # properties[namespace] = {**properties[namespace], **process_yaml_to_urdf(a, copy.deepcopy(properties))['default']}
                         #if returned variable is bridge scope 
-                        returned_properties = process_yaml_to_urdf(path, copy_of_properties_to_pass, (copy.deepcopy(yaml_path_list)).append(path))
+                        new_yaml_path_list = copy.deepcopy(yaml_path_list)
+                        new_yaml_path_list.append(path)
+                        returned_properties = process_yaml_to_urdf(path, copy_of_properties_to_pass, yaml_path_list=new_yaml_path_list)
                         if namespace not in properties:
                             properties[namespace] = dict(variables = dict(), functions = dict())
                         for key in returned_properties['default']['variables'].keys():
@@ -586,19 +588,19 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
 
 
-
-    process_level(file_data['model'][-1], top_local_key_list)
+    if 'model' in file_data.keys():
+        process_level(file_data['model'][-1], top_local_key_list)
 
     for ns_ in properties.keys():
         for key in list(properties[ns_]['variables'].keys()):
             
-            if properties[ns_]['variables'][key]['scope'] in 'local child'.split():
+            if properties[ns_]['variables'][key]['scope'] in 'local child justpass'.split():
                 del properties[ns_]['variables'][key]
             elif properties[ns_]['variables'][key]['scope'] in 'parent'.split():
                 properties[ns_]['variables'][key]['scope'] = 'bridge'
 
         for key in list(properties[ns_]['functions'].keys()):
-            if properties[ns_]['functions'][key]['scope'] in 'local child'.split():
+            if properties[ns_]['functions'][key]['scope'] in 'local child justpass'.split():
                 del properties[ns_]['functions'][key]
             elif properties[ns_]['functions'][key]['scope'] in 'parent'.split():
                 properties[ns_]['functions'][key]['scope'] = 'bridge'
@@ -655,7 +657,7 @@ def main(yamaro_file, *args) -> str:
     process_value.current_properties = properties
 
     # process input arg so it allows passing variables! for now I will pass barebone properties
-    process_yaml_to_urdf(yamaro_file, properties, [yamaro_file])
+    process_yaml_to_urdf(yamaro_file, properties, yaml_path_list=[yamaro_file])
     untab_()
     add_line_to_urdf('</robot>')
 

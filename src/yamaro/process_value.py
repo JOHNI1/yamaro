@@ -193,8 +193,8 @@ if __name__ == "__main__":
             }
         }
     }
-    process(f'$(import math)')
-    process(f'$(print(math.sqrt(9)))')
+    process(f'$(import os)')
+    process(f'$(print(os.path.expanduser("~/yamaro/tests/dronecopy.yaml")))')
 
 # if __name__ == "__main__":
 #     current_properties = {
