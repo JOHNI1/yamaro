@@ -18,8 +18,8 @@
 import re
 import ast
 from . import flexidict
-# import flexidict
 from .pretty_print_dict import pretty_print_dict
+# import flexidict
 # from pretty_print_dict import pretty_print_dict
 
 
@@ -53,11 +53,6 @@ def auto_convert(value_str):
         return value_str
 
 def process_value(value, properties, local_key_list) -> str:
-    # print(id(current_properties), id(properties))
-    # print(value)
-    # print(properties)
-
-    # print(current_properties['default']['variables'].keys())    
     global eval_globals  # Use the persistent eval_globals
     # Process non-string values recursively
     if not isinstance(value, str):

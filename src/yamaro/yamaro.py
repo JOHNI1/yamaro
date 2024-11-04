@@ -23,7 +23,9 @@ import numpy as np
 from .flexidict import load_yaml_to_FlexiDict, FlexiDict
 from .process_value import process
 from . import process_value
-# from .pretty_print_dict import pretty_print_dict
+# from flexidict import load_yaml_to_FlexiDict, FlexiDict
+# from process_value import process
+# import process_value
 
 urdf_output = '<?xml version="1.0" ?>\n'
 spaces = 0
@@ -176,11 +178,11 @@ def part_process(item, local_key_list, process_level):
                 for index, item_ in enumerate(link):
                     key = process(item_[0])
                     l_comp_extras = FlexiDict()
-
                     l_comp_list.append([])
 
-
-                    if key in vars.keys():
+                    if key.split('/')[0] == '':
+                        continue
+                    elif key in vars.keys():
                         value = process(item_[1])
                         if isinstance(value, str):
                             value = value.strip('\'"')
@@ -323,12 +325,9 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
     top_local_key_list = []
     process_value.current_local_key_list = top_local_key_list
     file_data = load_yaml_to_FlexiDict(file_name)
-    # print(file_data)
 
-    # print('before: ',properties, '\n')
 
     # Process variables and functions in the current file
-    # print(file_data)
     for position, define_key in enumerate(file_data.keys()):
         if 'variables' == define_key:
             for key, value in file_data[position][1] if file_data[position][1] is not None else []:
@@ -388,16 +387,15 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
         for item in layer if layer is not None else []:
             item[0] = process(item[0])################## still not sure if its good idea to change the original yaml read data
-            # print(file_data)
 
-            # print('ite: ', ite, "prop: ", properties['default']['variables'])
-            match item[0]:
+            match item[0].split('/')[0]:
+                case '':
+                    continue
                 case 'part':
                     part_process(copy.deepcopy(item[1]), local_key_list, process_level)
                 case 'process':
                     process(f'$({item[1]})')
                 case 'print':
-                    # print(properties)
                     # ANSI escape codes for colors
                     GREEN = "\033[32m"
                     RESET = "\033[0m"  # Reset color to default
@@ -487,17 +485,13 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
                         for t in range(int(range_[0]), int(range_[1]), int(range_[2])):
                             process(f'$({iterator} = {t})')
-                            # print(pretty_print_dict(properties))
                             process_level(item[1]['body'][-1], local_key_list)
                     except Exception as e:
                         raise Exception(f"Error processing for loop. {e}")
 
                 case 'if':
-                    # print(properties['default']['variables'])
                     try:
                         condition = process(f'$({item[1]['condition'][0]})')
-                        # print(item[1]['condition'][0])
-                        # print(condition)
                         if (eval(condition)):
                             process_level(item[1]['body'][-1], local_key_list)
                     except Exception as e:
@@ -506,13 +500,6 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                     if item[0][0].isupper():  #function                      
                         def CallFunction(ns, function_name):
                             function_args = []
-                            # print(properties['default'])
-                            # print()
-                            # print(process((properties[ns]['functions'][function_name]['value'])['input'][-1]))
-                            # print()
-                            # print(f"aaaaa {function_name}: ", (properties[ns]['functions'][function_name]['value'])['input'][-1])
-                            # print()
-                            # print(item)
                             function_inputs = process((properties[ns]['functions'][function_name]['value'])['input'][-1] if (properties[ns]['functions'][function_name]['value'])['input'][-1] is not None else '').split(',')
                             passed_param_list = []
 
@@ -543,7 +530,6 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                                     if param.split('=')[0].strip() not in passed_param_list:
                                         process(f'$({param.split("=")[0].strip()} = "{process(param.split("=")[1].strip())}")')
 
-                            # print('hiiiiiiii: ', (properties[ns]['functions'][function_name]['value'])['body'][-1])
                             process_level((properties[ns]['functions'][function_name]['value'])['body'][-1], local_key_list)
                             for argument_funciton in function_args:
                                 del properties[ns]['functions'][argument_funciton] #delete the passed function in its namespace because its supposed to be temporary!!!!
@@ -574,16 +560,16 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
                                 else:
                                     att[attribute.split('=')[0]] = attribute.split('=')[1]
                             # Capture 'item' by value in the lambda's default parameters
-                        # print(type(item[1]))
-                        if isinstance(item[1], FlexiDict) or isinstance(item[1], dict) or isinstance(item[1], list) or item[1] is None:
-                            xml(
-                                ele_att[0],
-                                att,
-                                [lambda item1=item[1], local_key_list=local_key_list: process_level(item1, local_key_list)]
-                            )
-                        else:
-                            argument = ''.join(' {key}="{value}"'.format(key=key, value=str(att[key]).strip('\'"')) for key in att)
-                            add_line_to_urdf('<{element}{argument}>{v}</{element}{argument}>'.format(element=ele_att[0], argument=argument, v=process(item[1])))
+                        if ele_att[0] != '':
+                            if isinstance(item[1], FlexiDict) or isinstance(item[1], dict) or isinstance(item[1], list) or item[1] is None:
+                                xml(
+                                    ele_att[0],
+                                    att,
+                                    [lambda item1=item[1], local_key_list=local_key_list: process_level(item1, local_key_list)]
+                                )
+                            else:
+                                argument = ''.join(' {key}="{value}"'.format(key=key, value=str(att[key]).strip('\'"')) for key in att)
+                                add_line_to_urdf('<{element}{argument}>{v}</{element}{argument}>'.format(element=ele_att[0], argument=argument, v=process(item[1])))
 
 
 
@@ -602,7 +588,6 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
 
     process_level(file_data['model'][-1], top_local_key_list)
-    # print('after: ',properties, '\n')
 
     for ns_ in properties.keys():
         for key in list(properties[ns_]['variables'].keys()):
@@ -652,11 +637,9 @@ def main(yamaro_file, *args) -> str:
     properties = dict(default=dict(variables=dict(), functions=dict()))
 
     for idx, arg in enumerate(args):
-        # print(f"Argument {idx}: {arg}")
         name, value = arg.split(':=')
         process(f'$({name} = {value})')
         properties['default']['variables'][name] = {'value': eval(value), 'scope': 'arg'}
-        # print(properties)
 
 
 
@@ -668,10 +651,8 @@ def main(yamaro_file, *args) -> str:
     xml('link', {'name': 'root_link'})
 
 
-    # print(load_yaml_to_FlexiDict(os.path.expanduser(sys.argv[1])))
 
     process_value.current_properties = properties
-    # print(f'\n{BLUE}starting processing yaml to urdf!{RESET}\n')
 
     # process input arg so it allows passing variables! for now I will pass barebone properties
     process_yaml_to_urdf(yamaro_file, properties, [yamaro_file])
@@ -679,7 +660,6 @@ def main(yamaro_file, *args) -> str:
     add_line_to_urdf('</robot>')
 
 
-    # print(f'\n\n{BLUE}output urdf:{RESET}\n{urdf_output}')
 
     return urdf_output
 

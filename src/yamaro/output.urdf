@@ -1,41 +1,4 @@
 <?xml version="1.0" ?>
 <robot name="drone">
   <link name="root_link"/>
-  <gazebo name="part0">
-    <a>1</a>
-  </gazebo>
-  <joint name="part0_joint" type="fixed">
-    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
-    <child link="part0_link"/>
-    <parent link="root_link"/>
-    <gazebo xyz="1 1 1">
-    </gazebo>
-  </joint>
-  <link name="part0_link">
-    <collision>
-      <geometry>
-        <sphere radius="1.0"/>
-      </geometry>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
-      <gazebo xyz="1 1 1">
-      </gazebo>
-    </collision>
-    <visual>
-      <geometry>
-        <sphere radius="1.0"/>
-      </geometry>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
-      <gazebo xyz="1 1 1">
-      </gazebo>
-    </visual>
-    <inertial>
-      <mass value="10"/>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
-      <inertia ixx="4.0" ixy="0" ixz="0" iyy="4.0" iyz="0" izz="4.0"/>
-      <gazebo xyz="1 1 1">
-      </gazebo>
-    </inertial>
-    <gazebo xyz="1 1 1">
-    </gazebo>
-  </link>
 </robot>

@@ -1,104 +1,190 @@
+# # # robot: drone
+
+# # # import: 
+# # #   - math
+# # #   - ament_index_python.packages
+
+# # # variables:
+# # #   # a: $(import math)
+# # #   # pi: $(math.pi)
+# # #   # right: $(pi/2)
+# # #   x: $(dict(a=1, b=2, c=3))
+# # #   y: {'a': 1, 'b': 2, 'c': 3}
+
+# # # model:
+# # #   # process: import math
+# # #   # process: import ament_index_python.packages
+# # #   # process: pi=math.pi
+# # #   print: $(print_properties())
+# # #   print: $(get_package_share_directory('drone'))
+# # #   # print: $(1 + pi)     # This should print the result of 1 + pi
+# # #   # print: $(x['a'])     # This should print 1
+# # #   # print: $(y['a'])     # This should print 1
+# # #   # print: $(x)     # This should print 1
+# # #   # print: $(y)     # This should print 1
+
+
+# # robot: drone
+
+# # import: 
+# #   - math
+# #   - ament_index_python.packages
+# #   - os
+
+
+# # variables:
+
+# #   pi: $(math.pi)
+# #   right: $(pi/2)
+# #   x: $(dict(a=1, b=2, c=3))
+# #   y: {'a': 1, 'b': 2, 'c': 3}
+
+# # functions:
+# #   MakePart:
+# #     input: name, type, parent, xyz, rpy, geometry, scale, **Block_To_Insert
+# #     body:
+# #       part:
+# #         name: $(name)
+# #         joint:
+# #           type: $(type)
+# #           parent: $(parent)
+# #           xyz: $(xyz)
+# #           rpy: $(rpy)
+# #           pivot: 
+# #           Block_To_Insert:
+# #         link:
+# #           geometry: $(geometry)
+# #           scale: $(scale)
+# #           mass: 10
+# #           collision:
+# #             Block_To_Insert:
+# #           visual:
+# #             Block_To_Insert:
+# #           inertial:
+# #             Block_To_Insert:
+# #           Block_To_Insert:
+               
+
+
+
+# # model:
+# #   process: import numpy
+# #   print: $(right)
+# #   print: $(x['a'])
+# #   print: $(1+pi)
+# #   print: $(y['a'])
+# #   if:
+# #     condition: True
+# #     body:
+# #       for:
+# #         iterator: i
+# #         range: 1
+# #         body:
+# #           process: mom = 1000
+# #           gazebo/name=part$(i):
+# #             a: 1
+# #           MakePart:
+# #             name: part$(i)
+# #             type: fixed
+# #             parent: root_link
+# #             xyz: '$(i) $(i) $(i)'
+# #             rpy: '$(i) $(i) $(i)'
+# #             geometry: sphere
+# #             scale: '1'
+# #             Block_To_Insert:
+# #               gazebo/xyz=1 1 1:
+# #             a: 1
+# #           print: mom = $(mom)
+# #           # process: print_properties()
+# #         print: i = $(i)
+# #   include:
+# #     path: $(os.path.expanduser("~/yamaro/tests/dronecopy.yaml"))
+# #     namespace: Dronecopy
+# #     xs: 1
+# #   process: print_properties()
+
+
 # robot: drone
 
 # import: 
 #   - math
 #   - ament_index_python.packages
+#   - os
+
 
 # variables:
-#   # a: $(import math)
-#   # pi: $(math.pi)
-#   # right: $(pi/2)
+
+#   pi: $(math.pi)
+#   right: $(pi/2)
 #   x: $(dict(a=1, b=2, c=3))
 #   y: {'a': 1, 'b': 2, 'c': 3}
+#   is_collision: False
+#   is_block: False
 
-# model:
-#   # process: import math
-#   # process: import ament_index_python.packages
-#   # process: pi=math.pi
-#   print: $(print_properties())
-#   print: $(get_package_share_directory('drone'))
-#   # print: $(1 + pi)     # This should print the result of 1 + pi
-#   # print: $(x['a'])     # This should print 1
-#   # print: $(y['a'])     # This should print 1
-#   # print: $(x)     # This should print 1
-#   # print: $(y)     # This should print 1
-
-
-robot: drone
-
-import: 
-  - math
-  - ament_index_python.packages
-  - os
-
-
-variables:
-
-  pi: $(math.pi)
-  right: $(pi/2)
-  x: $(dict(a=1, b=2, c=3))
-  y: {'a': 1, 'b': 2, 'c': 3}
-
-functions:
-  MakePart:
-    input: name, type, parent, xyz, rpy, geometry, scale, **Block_To_Insert
-    body:
-      part:
-        name: $(name)
-        joint:
-          type: $(type)
-          parent: $(parent)
-          xyz: $(xyz)
-          rpy: $(rpy)
-          pivot: 
-          Block_To_Insert:
-        link:
-          geometry: $(geometry)
-          scale: $(scale)
-          mass: 10
-          collision:
-            Block_To_Insert:
-          visual:
-            Block_To_Insert:
-          inertial:
-            Block_To_Insert:
-          Block_To_Insert:
+# functions:
+#   MakePart:
+#     input: name, type, parent, xyz, rpy, geometry, scale, **Block_To_Insert
+#     body:
+#       part:
+#         name: $(name)
+#         joint:
+#           type: $(type)
+#           parent: $(parent)
+#           xyz: $(xyz)
+#           rpy: $(rpy)
+#           pivot: 
+#           $('Block_To_Insert' if is_block else ''):
+#         link:
+#           geometry: $(geometry)
+#           scale: $(scale)
+#           mass: 10
+#           # if:
+#           #   condition: True
+#           #   body:
+#           $('collision' if is_collision else ''):
+#             $('Block_To_Insert' if is_block else ''):
+#           visual:
+#             $('Block_To_Insert' if is_block else ''):
+#           inertial:
+#             $('Block_To_Insert' if is_block else ''):
+#           $('Block_To_Insert' if is_block else ''):
                
 
 
 
-model:
-  process: import numpy
-  print: $(right)
-  print: $(x['a'])
-  print: $(1+pi)
-  print: $(y['a'])
-  if:
-    condition: True
-    body:
-      for:
-        iterator: i
-        range: 1
-        body:
-          process: mom = 1000
-          gazebo/name=part$(i):
-            a: 1
-          MakePart:
-            name: part$(i)
-            type: fixed
-            parent: root_link
-            xyz: '$(i) $(i) $(i)'
-            rpy: '$(i) $(i) $(i)'
-            geometry: sphere
-            scale: '1'
-            Block_To_Insert:
-              gazebo/xyz=1 1 1:
-            a: 1
-          print: mom = $(mom)
-          # process: print_properties()
-        print: i = $(i)
-  include:
-    path: $(os.path.expanduser("~/yamaro/tests/dronecopy.yaml"))
-    namespace: Dronecopy
-    xs: 1
-  process: print_properties()
+# model:
+#   process: import numpy
+#   print: $(right)
+#   print: $(x['a'])
+#   print: $(1+pi)
+#   print: $(y['a'])
+#   if:
+#     condition: True
+#     body:
+#       for:
+#         iterator: i
+#         range: 1
+#         body:
+#           process: mom = 1000
+#           gazebo/name=part$(i):
+#             a: 1
+#           MakePart:
+#             name: part$(i)
+#             type: fixed
+#             parent: root_link
+#             xyz: '$(i) $(i) $(i)'
+#             rpy: '$(i) $(i) $(i)'
+#             geometry: sphere
+#             scale: '1'
+#             Block_To_Insert:
+#               gazebo/xyz=1 1 1:
+#             a: 1
+#           print: mom = $(mom)
+#           # process: print_properties()
+#         print: i = $(i)
+#   include:
+#     path: $(os.path.expanduser("~/yamaro/tests/dronecopy.yaml"))
+#     namespace: Dronecopy
+#     xs: 1
+#   process: print_properties()
+
