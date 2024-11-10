@@ -1,3 +1,4 @@
 dist
 tests
 src/yamaro/__pycache__
+.history

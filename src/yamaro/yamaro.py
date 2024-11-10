@@ -51,11 +51,15 @@ def split_(s):
     # Split on any number of commas and spaces
     return re.split(r'[,\s]+', s.strip())
 
+def xml_line(element, attributes={}):
+    argument = ''.join(' {key}="{value}"'.format(key=key, value=str(attributes[key]).strip('\'"')) for key in attributes)
+    add_line_to_urdf('<{element}{argument}>'.format(element=element, argument=argument))
+
+
 
 def xml(element, attributes={}, body=[], *args, **kwargs):
     if len(body) > 0:
-        argument = ''.join(' {key}="{value}"'.format(key=key, value=str(attributes[key]).strip('\'"')) for key in attributes)
-        add_line_to_urdf('<{element}{argument}>'.format(element=element, argument=argument))
+        xml_line(element, attributes={})
         tab_()
     
         for func in body:
@@ -99,8 +103,12 @@ def rotate_vector(vector, rotation_vector):
     
     return rotated_vector
 
-def part_process(item, local_key_list, process_level):
 
+vars = None
+l_comp_list = None
+
+def part_process(item, local_key_list, process_level):
+    global vars
     try:
         my_item = copy.deepcopy(item)
         # for ind in range(len(my_item.keys())):
@@ -157,7 +165,7 @@ def part_process(item, local_key_list, process_level):
                 for i in range(len(default_joint_setup)):
                     j.insert(i, default_joint_setup[i])
 
-                j.append(lambda j_extras=j_extras: process_level(j_extras, local_key_list))
+                j.append(lambda j_extras=j_extras: process_level(j_extras, local_key_list, True))
 
                 xml('joint', {'name': name[0], 'type': vars['type']}, j)
 
@@ -167,142 +175,46 @@ def part_process(item, local_key_list, process_level):
 
 
             elif my_item[the_index][0] == 'link':
+                
+                xml_line('link', {'name': name[1]})
+                tab_()
+
                 link = my_item[the_index][1]
-                    
+                
+                global l_comp_list
                 vars = dict(geometry=None, scale=None, mass=None, xyz='0 0 0', rpy='0 0 0', pivot='0 0 0')
 
                 l = []
-                l_extras = FlexiDict()
                 l_comp_list = []
                 
                 for index, item_ in enumerate(link):
-                    key = process(item_[0])
-                    l_comp_extras = FlexiDict()
-                    l_comp_list.append([])
+                #     key = process(item_[0])
+                #     l_comp_extras = FlexiDict()
+                #     l_comp_list.append([])
 
-                    if key.split('/')[0] == '':
-                        continue
-                    elif key in vars.keys():
-                        value = process(item_[1])
-                        if isinstance(value, str):
-                            value = value.strip('\'"')
-                        vars[key] = value if value is not None else vars[key]
+                #     if key.split('/')[0] == '':
+                #         continue
+                #     elif key in vars.keys():
+                #         value = process(item_[1])
+                #         if isinstance(value, str):
+                #             value = value.strip('\'"')
+                #         vars[key] = value if value is not None else vars[key]
+                    process_level(item_, local_key_list, True)
+                    # l.
+                    # l_comp_list[index].append(lambda l_comp_extras=l_comp_extras: process_level(l_comp_extras, local_key_list)) #for each line like (type: fixed) we will call the process function. 
+                l.append(lambda key=key, body=l_comp_list[index]: xml(key, body=body))
 
-                    elif key in 'visual inertial collision'.split():
-                        sub_vars = copy.deepcopy(vars)
-                        sub_vars['xyz'] = '0 0 0'
-                        sub_vars['pivot'] = '0 0 0' #reset pivot
-                        sub_vars['rpy'] = '0 0 0'
-                        if key == 'inertial':
-                            for sub_item in item_[1] if item_[1] is not None else [['']]:
-                                sub_key = process(sub_item[0])
-                                if sub_key in sub_vars.keys() and not sub_key == '':
-                                    sub_value = process(sub_item[1])
-                                    sub_vars[sub_key] = sub_value if sub_value is not None else sub_vars[sub_key]
-                                elif not sub_key == '':
-                                    l_comp_extras.add(sub_key, sub_item[1])
-                                    
-
-                            if 'inertia' not in sub_vars.keys():
-                                if sub_vars['geometry'].lower() == 'box':
-                                    sub_vars['inertia'] = f"{float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[1]), 2) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12}"
-                                elif sub_vars['geometry'].lower() == 'cylinder':
-                                    sub_vars['inertia'] = f"{float(sub_vars['mass']) * (3 * pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (3 * pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) / 2}"
-                                elif sub_vars['geometry'].lower() == 'tube':
-                                    sub_vars['inertia'] = f"{float(sub_vars['mass']) * (3 * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (3 * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 2}"
-                                elif sub_vars['geometry'].lower() == 'sphere':
-                                    sub_vars['inertia'] = f"{float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)} 0 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)}"
-
-                            l_comp_list[index].append(lambda sub_vars=sub_vars: xml('mass', attributes=dict(value=sub_vars['mass'])))
-
-
-                            transformed_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
-                            sub_sub_transformed_xyz = rotate_vector(split_(sub_vars['pivot']), split_(sub_vars['rpy']))
-                            sub_transformed_xyz = rotate_vector([(float(split_(sub_vars['xyz'])[i]) - sub_sub_transformed_xyz[i]) for i in range(3)], split_(vars['rpy']))
-
-                            sub_vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - transformed_xyz[i] + sub_transformed_xyz[i]) for i in range(3))
-                            sub_vars['rpy'] = ' '.join(str(float(split_(sub_vars['rpy'])[i]) + float(split_(vars['rpy'])[i])) for i in range(3))
-                            l_comp_list[index].append(lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy'])))
-                            inertia_values = split_(sub_vars['inertia'])
-                            l_comp_list[index].append(
-                                lambda inertia_values=inertia_values: xml(
-                                    'inertia',
-                                    attributes=dict(
-                                        ixx=inertia_values[0],
-                                        ixy=inertia_values[1],
-                                        ixz=inertia_values[2],
-                                        iyy=inertia_values[3],
-                                        iyz=inertia_values[4],
-                                        izz=inertia_values[5],
-                                    ),
-                                )
-                            )
-                            l_comp_list[index].append(lambda l_comp_extras=l_comp_extras: process_level(l_comp_extras, local_key_list))
-                            l.append(lambda key=key, body=l_comp_list[index]: xml(key, body=body))
-
-                        elif key in 'collision visual'.split():
-                            for sub_item in item_[1] if item_[1] is not None else [['']]:
-                                sub_key = process(sub_item[0])
-                                if sub_key in sub_vars.keys() and not sub_key == '':
-                                    sub_value = process(sub_item[1])
-                                    sub_vars[sub_key] = sub_value if sub_value is not None else sub_vars[sub_key]
-                                elif not sub_key == '':
-                                    l_comp_extras.add(sub_key, sub_item[1])
-                                    
-                            match sub_vars['geometry'].lower(): 
-                                case 'box':
-                                    l_comp_list[index].append(
-                                        lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('box', attributes=dict(size=sub_vars['scale']))])
-                                    )
-                                case 'cylinder':
-                                    radius, length = float(split_(sub_vars['scale'])[0]), float(split_(sub_vars['scale'])[1])
-                                    l_comp_list[index].append(
-                                        lambda radius=radius, length=length: xml(
-                                            'geometry', body=[lambda: xml('cylinder', attributes=dict(radius=radius, length=length))]
-                                        )
-                                    )
-                                case 'sphere':
-                                    radius = float(split_(sub_vars['scale'])[0])
-                                    l_comp_list[index].append(
-                                        lambda radius=radius: xml('geometry', body=[lambda: xml('sphere', attributes=dict(radius=radius))])
-                                    )
-                                case _:
-                                    l_comp_list[index].append(
-                                        lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('mesh', attributes=dict(filename=sub_vars['geometry'], scale=sub_vars['scale']))])
-                                    )
-
-
-
-                            transformed_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
-                            sub_sub_transformed_xyz = rotate_vector(split_(sub_vars['pivot']), split_(sub_vars['rpy']))
-                            sub_transformed_xyz = rotate_vector([(float(split_(sub_vars['xyz'])[i]) - sub_sub_transformed_xyz[i]) for i in range(3)], split_(vars['rpy']))
-
-                            sub_vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - transformed_xyz[i] + sub_transformed_xyz[i]) for i in range(3))
-                            sub_vars['rpy'] = ' '.join(str(float(split_(sub_vars['rpy'])[i]) + float(split_(vars['rpy'])[i])) for i in range(3))
-
-                            l_comp_list[index].append(
-                                lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy']))
-                            )
-
-                            l_comp_list[index].append(lambda l_comp_extras=l_comp_extras: process_level(l_comp_extras, local_key_list))
-                            l.append(lambda key=key, body=l_comp_list[index]: xml(key, body=body))
-                    else:
-                        l_extras.add(key, item_[1])
-        
-                l.append(lambda l_extras=l_extras: process_level(l_extras, local_key_list))
-                xml('link', {'name': name[1]}, l)
+                untab_()
+                add_line_to_urdf('</{element}>'.format(element='link'))
 
             else:
                 part_extras.add(the_key, my_item[the_index][1])
             
-        process_level(part_extras, local_key_list)
+        process_level(part_extras, local_key_list, True)
             
-
-
-
     except Exception as e:
         raise Exception(f"Error processing part. {e}")
-
+    
 
 ite = 0
 def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
@@ -379,7 +291,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
 
 
-    def process_level(layer: list, local_key_list: list):
+    def process_level(layer: list, local_key_list: list, in_part=False):
         global ite
         ite += 1
         local_key_list = []
@@ -387,196 +299,303 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
         for item in layer if layer is not None else []:
             item[0] = process(item[0])################## still not sure if its good idea to change the original yaml read data
-
-            match item[0].split('/')[0]:
-                case '':
-                    continue
-                case 'part':
-                    part_process(copy.deepcopy(item[1]), local_key_list, process_level)
-                case 'process':
-                    process(f'$({item[1]})')
-                case 'print':
-                    # ANSI escape codes for colors
-                    GREEN = "\033[32m"
-                    RESET = "\033[0m"  # Reset color to default
-                    print(f'{GREEN}user_print:{RESET} {process(item[1])}')
-                case 'include':
-                    try:
-                        if len(item[1]['namespace']) > 1:
-                            raise ValueError(f"Duplicates of defining the namespace in include found. it can only be defined once for inclusion.")
-                        if len(item[1]['path']) > 1:
-                            raise ValueError(f"Duplicates of defining the path in include found. it can only be defined once for inclusion.")
-                        namespace = process(item[1]['namespace'][-1] if 'namespace' in item[1].keys() else 'default')
-                        if not namespace[0].isupper() and namespace != 'default': #default namespace is the only namespace that is lowercase and is accessible directly
-                            raise ValueError(f"The namespace '{item[1]['namespace'][-1]}' must start with a capital letter!")
-                        path = process(item[1]['path'][-1])
-                        if path in yaml_path_list:
-                            raise Exception("path included is already used and it will cuase infinite recursion!")
-                        copy_of_properties_to_pass = copy.deepcopy(properties)
-                        for key_ in item[1].keys():
-                            if len(item[1][key_]) > 1:
-                                raise Exception(f'Duplicates of defining the variable {key_} found. It can only be defined once for inclusion.')
-                            if key_ != 'path' and key_ != 'namespace':
-                                copy_of_properties_to_pass['default']['variables'][key_] = {'scope': 'justpass', 'value': process(item[1][key_][-1])}
-                        #the line beneath won't work when namespace is not default and not yet defined because **properties[namespace] is simply non existent and reading it will fail
-                        #here I need to implement the logic of only merging values that are global, parent, bridge. ONLY THE VALUES, NOT THE SCOPE!
-                        # properties[namespace] = {**properties[namespace], **process_yaml_to_urdf(a, copy.deepcopy(properties))['default']}
-                        #if returned variable is bridge scope 
-                        new_yaml_path_list = copy.deepcopy(yaml_path_list)
-                        new_yaml_path_list.append(path)
-                        returned_properties = process_yaml_to_urdf(path, copy_of_properties_to_pass, yaml_path_list=new_yaml_path_list)
-                        if namespace not in properties:
-                            properties[namespace] = dict(variables = dict(), functions = dict())
-                        for key in returned_properties['default']['variables'].keys():
-                            if key in properties[namespace]['variables'].keys():
-                                if properties[namespace]['variables'][key]['scope'] == 'local':
-                                    properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
+            global vars
+            if '' == item[0]:
+                continue
+            elif vars != None and item[0] in vars.keys() and in_part:
+                value = process(item[1])
+                if isinstance(value, str):
+                    value = value.strip('\'"')
+                vars[key] = value if value is not None else vars[key]
+            else:
+                match item[0].split('/')[0]:
+                    case 'intertial' if in_part:
+                        sub_vars = copy.deepcopy(vars)
+                        sub_vars['xyz'] = '0 0 0'
+                        sub_vars['pivot'] = '0 0 0' #reset pivot
+                        sub_vars['rpy'] = '0 0 0'
+                        if item[1] is not None:
+                            for sub_item in item[1]:
+                                sub_key = process(sub_item[0])
+                                if sub_key in sub_vars.keys():
+                                    sub_value = process(sub_item[1])
+                                    sub_vars[sub_key] = sub_value if sub_value is not None else sub_vars[sub_key]
                                 else:
-                                    properties[namespace]['variables'][key]['value'] = returned_properties['default']['variables'][key]['value']
-                            elif 'justpass' != returned_properties['default']['variables'][key]['scope']:
-                                properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
-
-                        for key in returned_properties['default']['functions'].keys():
-                            if key in properties[namespace]['functions'].keys():
-                                if properties[namespace]['functions'][key]['scope'] == 'local':
-                                    properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
-                                else:
-                                    properties[namespace]['functions'][key]['value'] = returned_properties['default']['functions'][key]['value']
-                            elif 'justpass' != returned_properties['default']['functions'][key]['scope']:
-                                properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
+                                    l_comp_extras.add(sub_key, sub_item[1])
                                 
-                        for returned_ns in returned_properties.keys(): #get returned properties's namespaces. merge them to the current properties
-                            if returned_ns != 'default':
-                                for key in returned_properties[returned_ns]['variables'].keys():
-                                    if key in properties[returned_ns]['variables'].keys():
-                                        if properties[returned_ns]['variables'][key]['scope'] == 'local':
-                                            properties[returned_ns]['variables'][key] = returned_properties[returned_ns]['variables'][key]
-                                        else:
-                                            properties[returned_ns]['variables'][key]['value'] = returned_properties[returned_ns]['variables'][key]['value']
-                                    elif 'justpass' != returned_properties[returned_ns]['variables'][key]['scope']:
-                                        properties[returned_ns]['variables'][key] = returned_properties[returned_ns]['variables'][key]
 
-                                for key in returned_properties[returned_ns]['functions'].keys():
-                                    if key in properties[returned_ns]['functions'].keys():
-                                        if properties[returned_ns]['functions'][key]['scope'] == 'local':
-                                            properties[returned_ns]['functions'][key] = returned_properties[returned_ns]['functions'][key]
-                                        else:
-                                            properties[returned_ns]['functions'][key]['value'] = returned_properties[returned_ns]['functions'][key]['value']
-                                    elif 'justpass' != returned_properties[returned_ns]['functions'][key]['scope']:
-                                        properties[returned_ns]['functions'][key] = returned_properties[returned_ns]['functions'][key]
+                        if 'inertia' not in sub_vars.keys():
+                            if sub_vars['geometry'].lower() == 'box':
+                                sub_vars['inertia'] = f"{float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[1]), 2) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12}"
+                            elif sub_vars['geometry'].lower() == 'cylinder':
+                                sub_vars['inertia'] = f"{float(sub_vars['mass']) * (3 * pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (3 * pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 12} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) / 2}"
+                            elif sub_vars['geometry'].lower() == 'tube':
+                                sub_vars['inertia'] = f"{float(sub_vars['mass']) * (3 * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 0 {float(sub_vars['mass']) * (3 * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) + pow(float(split_(sub_vars['scale'])[2]), 2)) / 12} 0 {float(sub_vars['mass']) * (pow(float(split_(sub_vars['scale'])[0]), 2) + pow(float(split_(sub_vars['scale'])[1]), 2)) / 2}"
+                            elif sub_vars['geometry'].lower() == 'sphere':
+                                sub_vars['inertia'] = f"{float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)} 0 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)} 0 {float(sub_vars['mass']) * pow(float(split_(sub_vars['scale'])[0]), 2) * (2 / 5)}"
+
+                        l_comp_list[index].append(lambda sub_vars=sub_vars: xml('mass', attributes=dict(value=sub_vars['mass'])))
 
 
+                        transformed_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
+                        sub_sub_transformed_xyz = rotate_vector(split_(sub_vars['pivot']), split_(sub_vars['rpy']))
+                        sub_transformed_xyz = rotate_vector([(float(split_(sub_vars['xyz'])[i]) - sub_sub_transformed_xyz[i]) for i in range(3)], split_(vars['rpy']))
 
-                        process_value.current_properties = properties
-
-                    except Exception as e:
-                        raise Exception(f"Error processing file '{item[1]['path']}'. {e}")
-
-                case 'for':
-                    try:
-                        iterator = process(item[1]['iterator'][0])
-                        range_ = split_(process(str(item[1]['range'][0])))
-
-
-                        if len(range_) == 1:
-                            range_.append(range_[0])
-                            range_[0] = 0
-                            range_.append(1)
-                        elif len(range_) == 2:
-                            range_.append(1)
-
-                        for t in range(int(range_[0]), int(range_[1]), int(range_[2])):
-                            process(f'$({iterator} = {t})')
-                            process_level(item[1]['body'][-1], local_key_list)
-                    except Exception as e:
-                        raise Exception(f"Error processing for loop. {e}")
-
-                case 'if':
-                    try:
-                        condition = process(f'$({item[1]['condition'][0]})')
-                        if (eval(condition)):
-                            process_level(item[1]['body'][-1], local_key_list)
-                    except Exception as e:
-                        raise Exception(f"Error processing if. {e}")
-                case _:
-                    if item[0][0].isupper():  #function                      
-                        def CallFunction(ns, function_name):
-                            function_args = []
-                            function_inputs = process((properties[ns]['functions'][function_name]['value'])['input'][-1] if (properties[ns]['functions'][function_name]['value'])['input'][-1] is not None else '').split(',')
-                            passed_param_list = []
-
-                            for param in function_inputs:
-                                if '**' in param:
-                                    if (param.replace('*', '').strip() not in list(properties[ns]['functions'].keys())):
-                                        if ((param.replace('*', '').strip())[0]).isupper():
-                                            function_args.append(param.replace('*', '').strip())
-                                        else:
-                                            raise ValueError(f"The function parameter '{param}' has to have a name that starts with an uppercase letter.")
-                                    else:
-                                        raise ValueError(f"The function parameter '{param}' is defined already!.")
-
-                            if item[1] is not None:
-                                for key in item[1].keys():
-                                    processed_key = process(key)
-                                    if processed_key in function_args:
-                                        value = FlexiDict()
-                                        value.add('input', None)
-                                        value.add('body', item[1][key][-1])
-                                        properties[ns]['functions'][processed_key] = {'value': value, 'scope': 'local'}
-                                    else:
-                                        passed_param_list.append(processed_key)
-                                        process(f'$({processed_key} = "{process(item[1][key][-1])}")')
-                                                                            
-                            for param in function_inputs:
-                                if '=' in param:
-                                    if param.split('=')[0].strip() not in passed_param_list:
-                                        process(f'$({param.split("=")[0].strip()} = "{process(param.split("=")[1].strip())}")')
-
-                            process_level((properties[ns]['functions'][function_name]['value'])['body'][-1], local_key_list)
-                            for argument_funciton in function_args:
-                                del properties[ns]['functions'][argument_funciton] #delete the passed function in its namespace because its supposed to be temporary!!!!
-
-                        tag = item[0].split('.')
-                        if len(tag) == 2 and tag[0] in properties.keys(): #if namespace is defined
-                            if tag[1] in properties[tag[0]]['functions'].keys():
-                                CallFunction(tag[0], tag[1])
-                            else:
-                                raise KeyError(f"The function '{tag[1]}' is not defined in namespace '{tag[0]}'. Ensure that the function is defined in the same namespace or use default namespace.")
-
-                        elif len(tag) == 1 and tag[0] in properties['default']['functions'].keys():
-                            CallFunction('default', tag[0])
-
-                        else:
-                            raise ValueError(f"The '{tag}' is causing syntax error. For calling function, ensure that it is defined. If you specified namespace, use namespace.my_function to resolve it. Namespaces cannot be nested!")
-                    else:
-                        ele_att = item[0].split('/')
-                        att = {}
-                        if len(ele_att) > 1 and ele_att[1] != '':
-                            attributes = ele_att[1].split(',')
-                            for attribute in attributes:
-                                attribute = attribute.lstrip()
-                                if ':' in attribute:
-                                    att[attribute.split(':')[0]] = attribute.split(':')[1]
-                                elif ':=' in attribute:
-                                    att[attribute.split(':=')[0]] = attribute.split(':=')[1]
+                        sub_vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - transformed_xyz[i] + sub_transformed_xyz[i]) for i in range(3))
+                        sub_vars['rpy'] = ' '.join(str(float(split_(sub_vars['rpy'])[i]) + float(split_(vars['rpy'])[i])) for i in range(3))
+                        l_comp_list[index].append(lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy'])))
+                        inertia_values = split_(sub_vars['inertia'])
+                        l_comp_list[index].append(
+                            lambda inertia_values=inertia_values: xml(
+                                'inertia',
+                                attributes=dict(
+                                    ixx=inertia_values[0],
+                                    ixy=inertia_values[1],
+                                    ixz=inertia_values[2],
+                                    iyy=inertia_values[3],
+                                    iyz=inertia_values[4],
+                                    izz=inertia_values[5],
+                                ),
+                            )
+                        )
+                        l_comp_list[index].append(lambda l_comp_extras=l_comp_extras: process_level(l_comp_extras, local_key_list, True))
+                    case 'collision' | 'visual' if in_part:
+                        sub_vars = copy.deepcopy(vars)
+                        sub_vars['xyz'] = '0 0 0'
+                        sub_vars['pivot'] = '0 0 0' #reset pivot
+                        sub_vars['rpy'] = '0 0 0'
+                        if item[1] is not None:
+                            for sub_item in item[1]:
+                                sub_key = process(sub_item[0])
+                                if sub_key in sub_vars.keys():
+                                    sub_value = process(sub_item[1])
+                                    sub_vars[sub_key] = sub_value if sub_value is not None else sub_vars[sub_key]
                                 else:
-                                    att[attribute.split('=')[0]] = attribute.split('=')[1]
-                            # Capture 'item' by value in the lambda's default parameters
-                        if ele_att[0] != '':
-                            if isinstance(item[1], FlexiDict) or isinstance(item[1], dict) or isinstance(item[1], list) or item[1] is None:
-                                xml(
-                                    ele_att[0],
-                                    att,
-                                    [lambda item1=item[1], local_key_list=local_key_list: process_level(item1, local_key_list)]
+                                    l_comp_extras.add(sub_key, sub_item[1])
+                                
+                        match sub_vars['geometry'].lower(): 
+                            case 'box':
+                                l_comp_list[index].append(
+                                    lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('box', attributes=dict(size=sub_vars['scale']))])
                                 )
+                            case 'cylinder':
+                                radius, length = float(split_(sub_vars['scale'])[0]), float(split_(sub_vars['scale'])[1])
+                                l_comp_list[index].append(
+                                    lambda radius=radius, length=length: xml(
+                                        'geometry', body=[lambda: xml('cylinder', attributes=dict(radius=radius, length=length))]
+                                    )
+                                )
+                            case 'sphere':
+                                radius = float(split_(sub_vars['scale'])[0])
+                                l_comp_list[index].append(
+                                    lambda radius=radius: xml('geometry', body=[lambda: xml('sphere', attributes=dict(radius=radius))])
+                                )
+                            case _:
+                                l_comp_list[index].append(
+                                    lambda sub_vars=sub_vars: xml('geometry', body=[lambda sub_vars=sub_vars: xml('mesh', attributes=dict(filename=sub_vars['geometry'], scale=sub_vars['scale']))])
+                                )
+
+
+
+                        transformed_xyz = rotate_vector(split_(vars['pivot']), split_(vars['rpy']))
+                        sub_sub_transformed_xyz = rotate_vector(split_(sub_vars['pivot']), split_(sub_vars['rpy']))
+                        sub_transformed_xyz = rotate_vector([(float(split_(sub_vars['xyz'])[i]) - sub_sub_transformed_xyz[i]) for i in range(3)], split_(vars['rpy']))
+
+                        sub_vars['xyz'] = ' '.join(str(float(split_(vars['xyz'])[i]) - transformed_xyz[i] + sub_transformed_xyz[i]) for i in range(3))
+                        sub_vars['rpy'] = ' '.join(str(float(split_(sub_vars['rpy'])[i]) + float(split_(vars['rpy'])[i])) for i in range(3))
+
+                        l_comp_list[index].append(
+                            lambda sub_vars=sub_vars: xml('origin', attributes=dict(xyz=sub_vars['xyz'], rpy=sub_vars['rpy']))
+                        )
+
+                        l_comp_list[index].append(lambda l_comp_extras=l_comp_extras: process_level(l_comp_extras, local_key_list, True))
+
+                    case 'part':
+                        part_process(copy.deepcopy(item[1]), local_key_list, process_level)
+                    case 'process':
+                        process(f'$({item[1]})')
+                    case 'print':
+                        # ANSI escape codes for colors
+                        GREEN = "\033[32m"
+                        RESET = "\033[0m"  # Reset color to default
+                        print(f'{GREEN}user_print:{RESET} {process(item[1])}')
+                    case 'include':
+                        try:
+                            if len(item[1]['namespace']) > 1:
+                                raise ValueError(f"Duplicates of defining the namespace in include found. it can only be defined once for inclusion.")
+                            if len(item[1]['path']) > 1:
+                                raise ValueError(f"Duplicates of defining the path in include found. it can only be defined once for inclusion.")
+                            namespace = process(item[1]['namespace'][-1] if 'namespace' in item[1].keys() else 'default')
+                            if not namespace[0].isupper() and namespace != 'default': #default namespace is the only namespace that is lowercase and is accessible directly
+                                raise ValueError(f"The namespace '{item[1]['namespace'][-1]}' must start with a capital letter!")
+                            path = process(item[1]['path'][-1])
+                            if path in yaml_path_list:
+                                raise Exception("path included is already used and it will cuase infinite recursion!")
+                            copy_of_properties_to_pass = copy.deepcopy(properties)
+                            for key_ in item[1].keys():
+                                if len(item[1][key_]) > 1:
+                                    raise Exception(f'Duplicates of defining the variable {key_} found. It can only be defined once for inclusion.')
+                                if key_ != 'path' and key_ != 'namespace':
+                                    copy_of_properties_to_pass['default']['variables'][key_] = {'scope': 'justpass', 'value': process(item[1][key_][-1])}
+                            #the line beneath won't work when namespace is not default and not yet defined because **properties[namespace] is simply non existent and reading it will fail
+                            #here I need to implement the logic of only merging values that are global, parent, bridge. ONLY THE VALUES, NOT THE SCOPE!
+                            # properties[namespace] = {**properties[namespace], **process_yaml_to_urdf(a, copy.deepcopy(properties))['default']}
+                            #if returned variable is bridge scope 
+                            new_yaml_path_list = copy.deepcopy(yaml_path_list)
+                            new_yaml_path_list.append(path)
+                            returned_properties = process_yaml_to_urdf(path, copy_of_properties_to_pass, yaml_path_list=new_yaml_path_list)
+                            if namespace not in properties:
+                                properties[namespace] = dict(variables = dict(), functions = dict())
+                            for key in returned_properties['default']['variables'].keys():
+                                if key in properties[namespace]['variables'].keys():
+                                    if properties[namespace]['variables'][key]['scope'] == 'local':
+                                        properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
+                                    else:
+                                        properties[namespace]['variables'][key]['value'] = returned_properties['default']['variables'][key]['value']
+                                elif 'justpass' != returned_properties['default']['variables'][key]['scope']:
+                                    properties[namespace]['variables'][key] = returned_properties['default']['variables'][key]
+
+                            for key in returned_properties['default']['functions'].keys():
+                                if key in properties[namespace]['functions'].keys():
+                                    if properties[namespace]['functions'][key]['scope'] == 'local':
+                                        properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
+                                    else:
+                                        properties[namespace]['functions'][key]['value'] = returned_properties['default']['functions'][key]['value']
+                                elif 'justpass' != returned_properties['default']['functions'][key]['scope']:
+                                    properties[namespace]['functions'][key] = returned_properties['default']['functions'][key]
+                                    
+                            for returned_ns in returned_properties.keys(): #get returned properties's namespaces. merge them to the current properties
+                                if returned_ns != 'default':
+                                    for key in returned_properties[returned_ns]['variables'].keys():
+                                        if key in properties[returned_ns]['variables'].keys():
+                                            if properties[returned_ns]['variables'][key]['scope'] == 'local':
+                                                properties[returned_ns]['variables'][key] = returned_properties[returned_ns]['variables'][key]
+                                            else:
+                                                properties[returned_ns]['variables'][key]['value'] = returned_properties[returned_ns]['variables'][key]['value']
+                                        elif 'justpass' != returned_properties[returned_ns]['variables'][key]['scope']:
+                                            properties[returned_ns]['variables'][key] = returned_properties[returned_ns]['variables'][key]
+
+                                    for key in returned_properties[returned_ns]['functions'].keys():
+                                        if key in properties[returned_ns]['functions'].keys():
+                                            if properties[returned_ns]['functions'][key]['scope'] == 'local':
+                                                properties[returned_ns]['functions'][key] = returned_properties[returned_ns]['functions'][key]
+                                            else:
+                                                properties[returned_ns]['functions'][key]['value'] = returned_properties[returned_ns]['functions'][key]['value']
+                                        elif 'justpass' != returned_properties[returned_ns]['functions'][key]['scope']:
+                                            properties[returned_ns]['functions'][key] = returned_properties[returned_ns]['functions'][key]
+
+
+
+                            process_value.current_properties = properties
+
+                        except Exception as e:
+                            raise Exception(f"Error processing file '{item[1]['path']}'. {e}")
+
+                    case 'for':
+                        try:
+                            iterator = process(item[1]['iterator'][0])
+                            range_ = split_(process(str(item[1]['range'][0])))
+
+
+                            if len(range_) == 1:
+                                range_.append(range_[0])
+                                range_[0] = 0
+                                range_.append(1)
+                            elif len(range_) == 2:
+                                range_.append(1)
+
+                            for t in range(int(range_[0]), int(range_[1]), int(range_[2])):
+                                process(f'$({iterator} = {t})')
+                                process_level(item[1]['body'][-1], local_key_list, in_part)
+                        except Exception as e:
+                            raise Exception(f"Error processing for loop. {e}")
+
+                    case 'if':
+                        try:
+                            condition = process(f'$({item[1]['condition'][0]})')
+                            if (eval(condition)):
+                                process_level(item[1]['body'][-1], local_key_list, in_part)
+                        except Exception as e:
+                            raise Exception(f"Error processing if. {e}")
+                    case _:
+                        if item[0][0].isupper():  #function                      
+                            def CallFunction(ns, function_name):
+                                function_args = []
+                                function_inputs = process((properties[ns]['functions'][function_name]['value'])['input'][-1] if (properties[ns]['functions'][function_name]['value'])['input'][-1] is not None else '').split(',')
+                                passed_param_list = []
+
+                                for param in function_inputs:
+                                    if '**' in param:
+                                        if (param.replace('*', '').strip() not in list(properties[ns]['functions'].keys())):
+                                            if ((param.replace('*', '').strip())[0]).isupper():
+                                                function_args.append(param.replace('*', '').strip())
+                                            else:
+                                                raise ValueError(f"The function parameter '{param}' has to have a name that starts with an uppercase letter.")
+                                        else:
+                                            raise ValueError(f"The function parameter '{param}' is defined already!.")
+
+                                if item[1] is not None:
+                                    for key in item[1].keys():
+                                        processed_key = process(key)
+                                        if processed_key in function_args:
+                                            value = FlexiDict()
+                                            value.add('input', None)
+                                            value.add('body', item[1][key][-1])
+                                            properties[ns]['functions'][processed_key] = {'value': value, 'scope': 'local'}
+                                        else:
+                                            passed_param_list.append(processed_key)
+                                            process(f'$({processed_key} = "{process(item[1][key][-1])}")')
+                                                                                
+                                for param in function_inputs:
+                                    if '=' in param:
+                                        if param.split('=')[0].strip() not in passed_param_list:
+                                            process(f'$({param.split("=")[0].strip()} = "{process(param.split("=")[1].strip())}")')
+
+                                process_level((properties[ns]['functions'][function_name]['value'])['body'][-1], local_key_list, in_part)
+                                for argument_funciton in function_args:
+                                    del properties[ns]['functions'][argument_funciton] #delete the passed function in its namespace because its supposed to be temporary!!!!
+
+                            tag = item[0].split('.')
+                            if len(tag) == 2 and tag[0] in properties.keys(): #if namespace is defined
+                                if tag[1] in properties[tag[0]]['functions'].keys():
+                                    CallFunction(tag[0], tag[1])
+                                else:
+                                    raise KeyError(f"The function '{tag[1]}' is not defined in namespace '{tag[0]}'. Ensure that the function is defined in the same namespace or use default namespace.")
+
+                            elif len(tag) == 1 and tag[0] in properties['default']['functions'].keys():
+                                CallFunction('default', tag[0])
+
                             else:
-                                argument = ''.join(' {key}="{value}"'.format(key=key, value=str(att[key]).strip('\'"')) for key in att)
-                                add_line_to_urdf('<{element}{argument}>{v}</{element}{argument}>'.format(element=ele_att[0], argument=argument, v=process(item[1])))
+                                raise ValueError(f"The '{tag}' is causing syntax error. For calling function, ensure that it is defined. If you specified namespace, use namespace.my_function to resolve it. Namespaces cannot be nested!")
+                        else:
+                            ele_att = item[0].split('/')
+                            att = {}
+                            if len(ele_att) > 1 and ele_att[1] != '':
+                                attributes = ele_att[1].split(',')
+                                for attribute in attributes:
+                                    attribute = attribute.lstrip()
+                                    if ':' in attribute:
+                                        att[attribute.split(':')[0]] = attribute.split(':')[1]
+                                    elif ':=' in attribute:
+                                        att[attribute.split(':=')[0]] = attribute.split(':=')[1]
+                                    else:
+                                        att[attribute.split('=')[0]] = attribute.split('=')[1]
+                                # Capture 'item' by value in the lambda's default parameters
+                            if ele_att[0] != '':
+                                if isinstance(item[1], FlexiDict) or isinstance(item[1], dict) or isinstance(item[1], list) or item[1] is None:
+                                    xml(
+                                        ele_att[0],
+                                        att,
+                                        [lambda item1=item[1], local_key_list=local_key_list: process_level(item1, local_key_list, in_part)]
+                                    )
+                                else:
+                                    argument = ''.join(' {key}="{value}"'.format(key=key, value=str(att[key]).strip('\'"')) for key in att)
+                                    add_line_to_urdf('<{element}{argument}>{v}</{element}{argument}>'.format(element=ele_att[0], argument=argument, v=process(item[1])))
 
 
 
 
-                    
+                        
 
 
 
@@ -589,7 +608,7 @@ def process_yaml_to_urdf(file_name, properties, yaml_path_list) -> dict:
 
 
     if 'model' in file_data.keys():
-        process_level(file_data['model'][-1], top_local_key_list)
+        process_level(file_data['model'][-1], top_local_key_list, False)
 
     for ns_ in properties.keys():
         for key in list(properties[ns_]['variables'].keys()):
